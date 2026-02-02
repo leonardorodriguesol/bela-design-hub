@@ -50,3 +50,4 @@ Release/
 # OS
 Thumbs.db
 .DS_Store
+*/.idea/*
