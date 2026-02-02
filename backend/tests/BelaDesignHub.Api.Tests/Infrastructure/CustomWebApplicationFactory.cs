@@ -2,6 +2,7 @@ using BelaDesignHub.Infrastructure.Persistence.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestPlatform.TestHost;
 
@@ -9,6 +10,9 @@ namespace BelaDesignHub.Api.Tests.Infrastructure;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private static readonly InMemoryDatabaseRoot DatabaseRoot = new();
+    private const string DatabaseName = "BelaDesignHubTests";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -25,7 +29,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseInMemoryDatabase($"BelaDesignHubTests-{Guid.NewGuid()}");
+                options.UseInMemoryDatabase(DatabaseName, DatabaseRoot);
             });
 
             var sp = services.BuildServiceProvider();
