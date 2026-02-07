@@ -49,9 +49,9 @@ jobs:
       - name: Test
         run: |
           dotnet test backend/BelaDesignHub.sln --configuration Release --no-restore \
-            /p:CollectCoverage=true \
-            /p:CoverletOutput=TestResults/coverage/ \
-            /p:CoverletOutputFormat=cobertura
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults/coverage \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
 
       - name: Coverage summary
         run: |
