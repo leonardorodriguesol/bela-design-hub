@@ -1,0 +1,215 @@
+import { useState } from 'react'
+
+import { CustomerForm } from '../../components/customers/CustomerForm'
+import { useCustomerMutations } from '../../hooks/useCustomerMutations'
+import { useCustomers } from '../../hooks/useCustomers'
+import type { Customer } from '../../types/customer'
+import type { CreateCustomerInput } from '../../types/customer'
+
+export const Customers = () => {
+  const { data, isLoading, error } = useCustomers()
+  const { create, update, remove } = useCustomerMutations()
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [feedbackType, setFeedbackType] = useState<'success' | 'error'>('success')
+
+  const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
+    setFeedback(message)
+    setFeedbackType(type)
+    setTimeout(() => setFeedback(null), 4000)
+  }
+
+  const handleCreate = async (values: CreateCustomerInput) => {
+    try {
+      await create.mutateAsync(values)
+      showMessage('Cliente criado com sucesso!')
+      setIsCreateOpen(false)
+    } catch {
+      showMessage('Erro ao criar cliente.', 'error')
+      throw new Error('create failed')
+    }
+  }
+
+  const handleUpdate = async (values: CreateCustomerInput) => {
+    if (!editingCustomer) return
+    try {
+      await update.mutateAsync({ id: editingCustomer.id, payload: values })
+      showMessage('Cliente atualizado com sucesso!')
+      setEditingCustomer(null)
+    } catch {
+      showMessage('Erro ao atualizar cliente.', 'error')
+      throw new Error('update failed')
+    }
+  }
+
+  const handleDelete = (customer: Customer) => {
+    if (!window.confirm(`Deseja excluir ${customer.name}?`)) {
+      return
+    }
+
+    remove.mutate(customer.id, {
+      onSuccess: () => showMessage('Cliente removido com sucesso!'),
+      onError: () => showMessage('Erro ao remover cliente.', 'error'),
+    })
+  }
+
+  return (
+    <section className="space-y-6">
+      <header className="space-y-2 text-brand-700">
+        <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Clientes</p>
+        <h2 className="text-2xl font-semibold text-brand-700">Gerencie seus clientes</h2>
+        <p className="text-sm text-brand-500">
+          Visualize e cadastre clientes conectados diretamente à API oficial.
+        </p>
+        <button
+          type="button"
+          className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-400"
+          onClick={() => setIsCreateOpen(true)}
+        >
+          <span aria-hidden>＋</span>
+          Adicionar cliente
+        </button>
+      </header>
+
+      {feedback && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            feedbackType === 'success'
+              ? 'border-brand-200 bg-brand-50 text-brand-700'
+              : 'border-red-200 bg-red-50 text-red-600'
+          }`}
+        >
+          {feedback}
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-brand-100 bg-white/95 shadow-sm">
+        <table className="w-full min-w-[600px] border-collapse text-left text-sm text-brand-700">
+          <thead>
+            <tr className="border-b border-brand-100 text-xs uppercase tracking-wide text-brand-400">
+              <th className="px-6 py-4">Nome</th>
+              <th className="px-6 py-4">Email</th>
+              <th className="px-6 py-4">Telefone</th>
+              <th className="px-6 py-4">Endereço</th>
+              <th className="px-6 py-4 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr>
+                <td className="px-6 py-6 text-brand-500" colSpan={4}>
+                  Carregando clientes...
+                </td>
+              </tr>
+            )}
+
+            {error && (
+              <tr>
+                <td className="px-6 py-6 text-brand-600" colSpan={4}>
+                  Não foi possível carregar os clientes. Verifique se a API está rodando.
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && !error && data && data.length === 0 && (
+              <tr>
+                <td className="px-6 py-6 text-brand-500" colSpan={4}>
+                  Nenhum cliente encontrado.
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && !error &&
+              data?.map((customer) => (
+                <tr key={customer.id} className="border-t border-brand-100">
+                  <td className="px-6 py-4 text-sm font-medium text-brand-800">{customer.name}</td>
+                  <td className="px-6 py-4 text-brand-600">{customer.email ?? '—'}</td>
+                  <td className="px-6 py-4 text-brand-600">{customer.phone ?? '—'}</td>
+                  <td className="px-6 py-4 text-brand-600">{customer.address ?? '—'}</td>
+                  <td className="px-6 py-4 text-right text-sm">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full border border-transparent p-1.5 text-brand-500 transition hover:border-brand-100 hover:bg-brand-50 hover:text-brand-700"
+                        aria-label={`Editar ${customer.name}`}
+                        title="Editar"
+                        onClick={() => setEditingCustomer(customer)}
+                      >
+                        <span aria-hidden>✏️</span>
+                        <span className="sr-only">Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-transparent p-1.5 text-brand-500 transition hover:border-brand-100 hover:bg-brand-50 hover:text-brand-700"
+                        aria-label={`Excluir ${customer.name}`}
+                        title="Excluir"
+                        onClick={() => handleDelete(customer)}
+                        disabled={remove.isPending}
+                      >
+                        <span aria-hidden>🗑️</span>
+                        <span className="sr-only">Excluir</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+          <div className="w-full max-w-xl rounded-3xl border border-brand-100 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Editar</p>
+                <h3 className="text-xl font-semibold text-brand-700">{editingCustomer.name}</h3>
+              </div>
+              <button
+                type="button"
+                className="text-sm font-semibold text-brand-500 hover:text-brand-700"
+                onClick={() => setEditingCustomer(null)}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <CustomerForm
+              defaultValues={{
+                name: editingCustomer.name,
+                email: editingCustomer.email ?? undefined,
+                phone: editingCustomer.phone ?? undefined,
+                address: editingCustomer.address ?? undefined,
+              }}
+              onSubmit={handleUpdate}
+              isSubmitting={update.isPending}
+            />
+          </div>
+        </div>
+      )}
+
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+          <div className="w-full max-w-xl rounded-3xl border border-brand-100 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Novo</p>
+                <h3 className="text-xl font-semibold text-brand-700">Adicionar cliente</h3>
+              </div>
+              <button
+                type="button"
+                className="text-sm font-semibold text-brand-500 hover:text-brand-700"
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <CustomerForm onSubmit={handleCreate} isSubmitting={create.isPending} />
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
