@@ -1,8 +1,8 @@
 version: "3.9"
 
 services:
-  api:
-    image: ${BELAHUB_IMAGE:-leonardodfg12/bela-design-hub:latest}
+  backend:
+    image: ${BELAHUB_IMAGE:-leonardodfg12/bela-design-hub-backend:latest}
     depends_on:
       - postgres
     environment:
