@@ -1,10 +1,9 @@
-version: "3.9"
-
 services:
   backend:
     image: ${BELAHUB_IMAGE:-leonardodfg12/bela-design-hub-backend:latest}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=bela_design_hub;Username=postgres;Password=postgres
@@ -14,14 +13,22 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: bela_design_hub
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
 
 volumes:
   postgres_data:
+# Aplicar script de seed
+# docker compose -f infra/docker-compose.yml exec postgres psql -U postgres -d bela_design_hub -f /docker-entrypoint-initdb.d/seed-data.sql
