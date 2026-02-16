@@ -25,6 +25,8 @@ const orderFilterStatusOptions: { label: string; value: OrderFilterStatus }[] = 
 export const Orders = () => {
   const { data: customers } = useCustomers()
   const [filters, setFilters] = useState<{ customerId?: string; status?: OrderFilterStatus }>({})
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [isCustomerFilterOpen, setIsCustomerFilterOpen] = useState(false)
 
   const apiFilters = useMemo(
     () => ({
@@ -52,11 +54,27 @@ export const Orders = () => {
     }, {})
   }, [customers])
 
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return []
+    const term = customerSearch.trim().toLowerCase()
+    if (!term) return customers
+    return customers.filter((customer) => customer.name.toLowerCase().includes(term))
+  }, [customers, customerSearch])
+
   const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setFeedback(message)
     setFeedbackType(type)
     setTimeout(() => setFeedback(null), 4000)
   }
+
+  const handleSelectCustomer = (customerId?: string) => {
+    setFilters((prev) => ({ ...prev, customerId }))
+    setIsCustomerFilterOpen(false)
+  }
+
+  const selectedCustomerLabel = filters.customerId
+    ? customerMap[filters.customerId] ?? 'Cliente selecionado'
+    : 'Todos'
 
   const normalizeDate = (value?: string) => {
     if (!value) return undefined
@@ -100,7 +118,7 @@ export const Orders = () => {
   const isOrderOverdue = (order: Order) => {
     if (!order.deliveryDate || order.status === 'Delivered') return false
     const deliveryDate = new Date(order.deliveryDate)
-    return deliveryDate.getTime() < Date.now()
+    return deliveryDate.getTime() < new Date().getTime()
   }
 
   const getOrderStatusInfo = (order: Order) => {
@@ -206,20 +224,63 @@ export const Orders = () => {
         <div className="grid gap-4 md:grid-cols-3">
           <label className="text-sm text-brand-500">
             <span className="mb-1 block font-medium text-brand-700">Cliente</span>
-            <select
-              className="w-full rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
-              value={filters.customerId ?? ''}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, customerId: event.target.value || undefined }))
-              }
-            >
-              <option value="">Todos</option>
-              {customers?.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+                onClick={() => setIsCustomerFilterOpen((prev) => !prev)}
+              >
+                <span>{selectedCustomerLabel}</span>
+                <span className={`text-brand-500 transition-transform ${isCustomerFilterOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+
+              {isCustomerFilterOpen && (
+                <div className="absolute z-10 mt-2 w-full rounded-xl border border-brand-100 bg-white shadow-lg">
+                  <div className="border-b border-brand-100 p-3">
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 placeholder:text-brand-300 focus:border-brand-500 focus:outline-none"
+                      placeholder="Digite parte do nome"
+                      value={customerSearch}
+                      onChange={(event) => setCustomerSearch(event.target.value)}
+                    />
+                  </div>
+                  <div className="max-h-56 overflow-y-auto p-1">
+                    <button
+                      type="button"
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition hover:bg-brand-50 ${
+                        !filters.customerId ? 'bg-brand-50 text-brand-800' : 'text-brand-600'
+                      }`}
+                      onClick={() => handleSelectCustomer(undefined)}
+                    >
+                      <span>Todos</span>
+                      {!filters.customerId && <span className="text-xs text-brand-400">Selecionado</span>}
+                    </button>
+                    {filteredCustomers.length === 0 && (
+                      <p className="px-3 py-2 text-xs text-brand-400">Nenhum cliente encontrado.</p>
+                    )}
+                    {filteredCustomers.map((customer) => {
+                      const isActive = filters.customerId === customer.id
+                      return (
+                        <button
+                          type="button"
+                          key={customer.id}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition hover:bg-brand-50 ${
+                            isActive ? 'bg-brand-50 text-brand-800' : 'text-brand-600'
+                          }`}
+                          onClick={() => handleSelectCustomer(customer.id)}
+                        >
+                          <span>{customer.name}</span>
+                          {isActive && <span className="text-xs text-brand-400">Selecionado</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </label>
 
           <label className="text-sm text-brand-500">

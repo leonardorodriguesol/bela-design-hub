@@ -14,10 +14,14 @@ httpClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       console.error('API error:', error.response.status, error.response.data)
-    } else {
-      console.error('Network error:', error.message)
+      return Promise.reject(error)
     }
 
-    return Promise.reject(error)
+    console.error('Network error:', error.message)
+    const connectionError = new Error(
+      'Não foi possível acessar o backend. Certifique-se de que a API está em execução.'
+    )
+    connectionError.name = 'BackendConnectionError'
+    return Promise.reject(connectionError)
   },
 )

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { CustomerForm } from '../../components/customers/CustomerForm'
 import { useCustomerMutations } from '../../hooks/useCustomerMutations'
@@ -13,6 +13,14 @@ export const Customers = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [feedbackType, setFeedbackType] = useState<'success' | 'error'>('success')
+  const [nameFilter, setNameFilter] = useState('')
+
+  const filteredCustomers = useMemo(() => {
+    if (!data) return []
+    if (!nameFilter) return data
+    const term = nameFilter.trim().toLowerCase()
+    return data.filter((customer) => customer.name.toLowerCase().includes(term))
+  }, [data, nameFilter])
 
   const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setFeedback(message)
@@ -59,17 +67,27 @@ export const Customers = () => {
       <header className="space-y-2 text-brand-700">
         <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Clientes</p>
         <h2 className="text-2xl font-semibold text-brand-700">Gerencie seus clientes</h2>
-        <p className="text-sm text-brand-500">
-          Visualize e cadastre clientes conectados diretamente à API oficial.
-        </p>
-        <button
-          type="button"
-          className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-400"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <span aria-hidden>＋</span>
-          Adicionar cliente
-        </button>
+        <p className="text-sm text-brand-500">Visualize e cadastre clientes usados em todos os pedidos.</p>
+        <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <label className="flex w-full max-w-md flex-col text-sm text-brand-500">
+            <span className="mb-1 font-medium text-brand-700">Filtrar por nome</span>
+            <input
+              type="text"
+              className="rounded-2xl border border-brand-100 px-4 py-2 text-brand-700 placeholder:text-brand-300 focus:border-brand-500 focus:outline-none"
+              placeholder="Digite parte do nome"
+              value={nameFilter}
+              onChange={(event) => setNameFilter(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-400"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <span aria-hidden>＋</span>
+            Adicionar cliente
+          </button>
+        </div>
       </header>
 
       {feedback && (
@@ -120,8 +138,16 @@ export const Customers = () => {
               </tr>
             )}
 
+            {!isLoading && !error && filteredCustomers.length === 0 && data && data.length > 0 && (
+              <tr>
+                <td className="px-6 py-6 text-brand-500" colSpan={4}>
+                  Nenhum cliente encontrado para "{nameFilter}".
+                </td>
+              </tr>
+            )}
+
             {!isLoading && !error &&
-              data?.map((customer) => (
+              filteredCustomers.map((customer) => (
                 <tr key={customer.id} className="border-t border-brand-100">
                   <td className="px-6 py-4 text-sm font-medium text-brand-800">{customer.name}</td>
                   <td className="px-6 py-4 text-brand-600">{customer.email ?? '—'}</td>

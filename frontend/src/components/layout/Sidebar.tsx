@@ -35,10 +35,6 @@ export const Sidebar = () => {
         ))}
       </nav>
 
-      <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-600">
-        <p className="text-xs uppercase tracking-widest">Ambiente</p>
-        <p className="text-base font-semibold text-brand-800">Desenvolvimento</p>
-      </div>
     </aside>
   )
 }

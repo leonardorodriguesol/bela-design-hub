@@ -15,4 +15,4 @@ export interface CreateCustomerInput {
   address?: string
 }
 
-export interface UpdateCustomerInput extends CreateCustomerInput {}
+export type UpdateCustomerInput = CreateCustomerInput
