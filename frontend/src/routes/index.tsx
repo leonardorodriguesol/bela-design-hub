@@ -6,6 +6,7 @@ import { Finance } from '../pages/finance'
 import { Customers } from '../pages/customers'
 import { Orders } from '../pages/orders'
 import { Expenses } from '../pages/expenses'
+import { Production } from '../pages/production'
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
       { path: 'customers', element: <Customers /> },
       { path: 'orders', element: <Orders /> },
       { path: 'expenses', element: <Expenses /> },
+      { path: 'production', element: <Production /> },
     ],
   },
 ])

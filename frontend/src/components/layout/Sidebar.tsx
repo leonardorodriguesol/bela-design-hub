@@ -6,6 +6,7 @@ const navItems = [
   { label: 'Clientes', to: '/customers' },
   { label: 'Pedidos', to: '/orders' },
   { label: 'Despesas', to: '/expenses' },
+  { label: 'Produção', to: '/production' },
 ]
 
 export const Sidebar = () => {
