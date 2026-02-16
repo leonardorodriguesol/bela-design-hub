@@ -1,66 +1,103 @@
 # Bela Design Hub
 
-Aplicação para gestão da marcenaria Bela Design, concentrando clientes, pedidos/encomendas e controle de gastos em um único hub.
+Sistema completo para a marcenaria Bella Design centralizar o relacionamento com clientes, acompanhar pedidos e controlar despesas do negócio em um único painel. O projeto reúne uma API em .NET 8, uma SPA React e infraestrutura pronta para rodar em containers.
 
-## Visão geral
+## Principais recursos
 
-- **Stack backend:** .NET 8 (ASP.NET Core Web API), EF Core + PostgreSQL, autenticação JWT.
-- **Stack frontend:** React + Vite (TypeScript), UI kit (Chakra/Mantine), Zustand/Redux para estado.
-- **Infra:** Docker Compose para orquestrar API, frontend e banco; GitHub Actions para CI.
+- **Cadastro de clientes** com busca e atualização rápida.
+- **Pedidos** com itens, totais automáticos, filtros por status/cliente e acompanhamento de produção.
+- **Despesas operacionais** com categorias e notas para manter a saúde financeira em dia.
+- **Dashboard web** pensado para uso diário na operação da marcenaria.
 
-## Estrutura do repositório
+## Arquitetura em alto nível
+
+| Camada     | Stack principal | Descrição |
+|------------|-----------------|-----------|
+| Backend    | ASP.NET Core 8 + EF Core + PostgreSQL | API REST responsável por clientes, pedidos, itens e despesas. Inclui migrações automáticas e política de CORS configurável via variável `Cors__AllowedOrigins`. |
+| Frontend   | React + Vite + TypeScript + React Query + Tailwind CSS | Interface SPA que consome a API, com filtros avançados e feedback em tempo real. |
+| Infra      | Docker Compose + GitHub Actions | Orquestra Postgres, API e frontend; pipelines de CI constroem/testam e publicam as imagens Docker. |
+
+Estrutura do repositório:
 
 ```
-backend/   -> API .NET (camadas Domain/Application/Infrastructure/Api)
-frontend/  -> SPA React (Vite, TypeScript)
-infra/     -> Docker, scripts e configs compartilhadas
+backend/   -> API .NET (Domain, Application, Infrastructure, Api)
+frontend/  -> SPA React (Vite + TypeScript)
+infra/     -> Docker Compose, scripts SQL e demais utilitários
 ```
 
-## Backend (API .NET)
+## Como rodar localmente
 
-Pré-requisitos: [.NET SDK 8.0](https://aka.ms/dotnet-download) e PostgreSQL local (ou Docker).
+### Pré-requisitos
+
+- .NET SDK 8.0
+- Node.js 20+ e npm
+- Docker (opcional, para rodar tudo em containers)
+
+### Backend
 
 ```bash
 cd backend
 dotnet restore
-dotnet ef database update   # aplica migração InitialCreate
+dotnet ef database update          # aplica migrações
 dotnet run --project BelaDesignHub.Api/BelaDesignHub.Api.csproj
 ```
 
-O `appsettings.json` já define a connection string padrão (localhost). Para ambientes diferentes, sobrescreva via variável `ConnectionStrings__DefaultConnection`.
+A connection string padrão aponta para `localhost`. Para usar outro host (ex.: Docker), sobrescreva `ConnectionStrings__DefaultConnection`.
 
-## Infra local (Docker Compose)
+### Frontend
 
-Por enquanto, o Compose sobe apenas o banco Postgres (a API roda via `dotnet run`).
+```bash
+cd frontend
+npm install
+VITE_API_BASE_URL=http://localhost:8080 npm run dev
+```
+
+## Backend
+
+- **Stack**: ASP.NET Core 8 com Entity Framework Core e PostgreSQL, seguindo camadas Domain/Application/Infrastructure/Api.
+- **Domínios**: clientes, pedidos com itens e status, despesas com categorias e datas.
+- **Infra de dados**: migrações automáticas, seeding via `infra/sql/seed-data.sql`, connection string configurável por `ConnectionStrings__DefaultConnection`.
+- **CORS e config**: variável `Cors__AllowedOrigins` obrigatória, health checks e Swagger habilitados em desenvolvimento.
+- **Testes**: `dotnet test` cobre domínio, aplicação, infraestrutura e API usando `WebApplicationFactory` com banco em memória.
+
+## Frontend
+
+- **Stack**: React 18 + Vite, TypeScript, React Router DOM, React Query, React Hook Form + Zod e Tailwind CSS.
+- **Páginas**: Home com branding Bella Design, Dashboard financeiro, módulo de Clientes com busca, Pedidos com filtros combinados e Despesas.
+- **UX**: filtros colapsáveis, mensagens amigáveis sem jargões técnicos, tratamento específico para falhas de conexão e layout responsivo.
+- **Testes**: Vitest + React Testing Library com utilitários em `frontend/tests`; MSW planejado para mocks de API.
+- **Build/Docker**: multi-stage Dockerfile (`frontend/Dockerfile`) gera bundle servido por Nginx; `VITE_API_BASE_URL` define o endpoint da API.
+
+## Testes
+
+- **Backend:** `cd backend && dotnet test`
+- **Frontend:** `cd frontend && npm run test`
+
+Os testes do backend usam `WebApplicationFactory` com banco em memória; no frontend utilizamos Vitest + React Testing Library.
+
+## Executar tudo com Docker Compose
 
 ```bash
 cd infra
 docker compose up --build
 ```
 
-- Postgres exposto em `localhost:5432` (user/password: `postgres`)
-- Configure sua API para usar `Host=localhost;Port=5432;Database=bela_design_hub;Username=postgres;Password=postgres`
+Serviços expostos:
 
-## Funcionalidades atuais
+- API em `http://localhost:8080`
+- Frontend em `http://localhost:4173`
+- Postgres em `localhost:5432` (`postgres` / `postgres`)
 
-- **Clientes**: CRUD completo com validação básica e timestamps.
-- **Pedidos/Vendas**: cadastro com itens, cálculo de valor total, filtros por cliente/status/período e atualização de status.
-- **Gastos**: registro de despesas com categoria, data e notas, além de listagem filtrada por período/categoria.
+O Compose também provisiona o banco com o script `infra/sql/seed-data.sql`.
 
-Endpoints expostos em `http://localhost:5034/swagger` quando a API está em execução.
+## Variáveis de ambiente importantes
 
-## Testes automatizados
+| Variável | Onde usar | Exemplo |
+|----------|-----------|---------|
+| `ConnectionStrings__DefaultConnection` | API | `Host=postgres;Port=5432;Database=bela_design_hub;Username=postgres;Password=postgres` |
+| `Cors__AllowedOrigins` | API | `http://localhost:4173` ou múltiplos valores separados por `;` |
+| `VITE_API_BASE_URL` | Frontend | `http://localhost:8080` |
 
-```bash
-cd backend
-dotnet test
-```
+## CI/CD
 
-Os testes utilizam `WebApplicationFactory` e banco em memória para validar os principais endpoints de clientes, pedidos e gastos.
-
-## Próximos passos
-
-1. Adicionar autenticação/autorizações básicas na API.
-2. Criar SPA com Vite + autenticação básica e tela de clientes/pedidos.
-3. Construir relatórios/dashboards (controle financeiro e pipeline de pedidos).
-4. Automatizar CI/CD (lint, testes e build de imagens Docker).
+O repositório possui workflows no GitHub Actions para backend e frontend, garantindo restauração, build, testes e publicação das imagens Docker `leonardodfg12/bela-design-hub-backend` e `leonardodfg12/bela-design-hub-frontend`.

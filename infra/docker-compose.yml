@@ -7,7 +7,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=bela_design_hub;Username=postgres;Password=postgres
-      Cors__AllowedOrigins: http://frontend:4173
+      Cors__AllowedOrigins: http://frontend:4173;http://localhost:4173
     ports:
       - "8080:8080"
 
