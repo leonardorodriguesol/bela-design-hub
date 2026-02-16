@@ -5,6 +5,10 @@
 BEGIN;
 
 -- Limpeza (ajuste caso haja chaves estrangeiras adicionais)
+TRUNCATE TABLE production_schedule_parts CASCADE;
+TRUNCATE TABLE production_schedules CASCADE;
+TRUNCATE TABLE product_parts CASCADE;
+TRUNCATE TABLE products CASCADE;
 TRUNCATE TABLE order_items CASCADE;
 TRUNCATE TABLE orders CASCADE;
 TRUNCATE TABLE expenses CASCADE;
@@ -80,5 +84,43 @@ VALUES
   ('d0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0', 'Materiais diversos showroom', 2100.00, 99, NOW() - INTERVAL '2 days', NULL, NOW()),
   ('d1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1', 'Lixa e abrasivos para oficina', 1250.00, 0, NOW() - INTERVAL '3 days', NULL, NOW()),
   ('e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2', 'Café e lanche equipe fábrica', 420.00, 99, NOW() - INTERVAL '1 day', NULL, NOW());
+
+-- Produtos com composição de peças
+INSERT INTO products ("Id", "Name", "Description", "CreatedAt", "UpdatedAt")
+VALUES
+  ('11111111-aaaa-bbbb-cccc-111111111111', 'Penteadeira Camarim Aurora', 'Estação completa com iluminação embutida e gavetas laterais.', NOW(), NULL),
+  ('22222222-bbbb-cccc-dddd-222222222222', 'Armário Modular Boreal', 'Armário multiuso com módulos independentes e iluminação interna.', NOW(), NULL),
+  ('33333333-cccc-dddd-eeee-333333333333', 'Balcão Gourmet Atlântida', 'Balcão central para cozinhas abertas com tampo em quartzo branco.', NOW(), NULL);
+
+INSERT INTO product_parts ("Id", "ProductId", "Name", "Quantity")
+VALUES
+  ('aaaa1111-bbbb-cccc-dddd-000000000001', '11111111-aaaa-bbbb-cccc-111111111111', 'Tampo principal com nicho para espelho', 1),
+  ('aaaa1111-bbbb-cccc-dddd-000000000002', '11111111-aaaa-bbbb-cccc-111111111111', 'Moldura com LED embutido', 1),
+  ('aaaa1111-bbbb-cccc-dddd-000000000003', '11111111-aaaa-bbbb-cccc-111111111111', 'Coluna lateral com gavetas', 2),
+  ('bbbb2222-cccc-dddd-eeee-000000000004', '22222222-bbbb-cccc-dddd-222222222222', 'Módulo vertical 60cm', 2),
+  ('bbbb2222-cccc-dddd-eeee-000000000005', '22222222-bbbb-cccc-dddd-222222222222', 'Módulo gaveteiro 90cm', 1),
+  ('bbbb2222-cccc-dddd-eeee-000000000006', '22222222-bbbb-cccc-dddd-222222222222', 'Porta ripada com dobradiça oculta', 2),
+  ('cccc3333-dddd-eeee-ffff-000000000007', '33333333-cccc-dddd-eeee-333333333333', 'Estrutura base com niveladores', 1),
+  ('cccc3333-dddd-eeee-ffff-000000000008', '33333333-cccc-dddd-eeee-333333333333', 'Tampo em quartzo branco 2,4m', 1),
+  ('cccc3333-dddd-eeee-ffff-000000000009', '33333333-cccc-dddd-eeee-333333333333', 'Painel frontal frisado', 2);
+
+-- Planejamento de produção
+INSERT INTO production_schedules ("Id", "ProductId", "ScheduledDate", "Quantity", "Status", "CreatedAt", "UpdatedAt")
+VALUES
+  ('44444444-aaaa-bbbb-cccc-444444444444', '11111111-aaaa-bbbb-cccc-111111111111', CURRENT_DATE, 4, 0, NOW(), NULL),
+  ('55555555-bbbb-cccc-dddd-555555555555', '22222222-bbbb-cccc-dddd-222222222222', CURRENT_DATE + INTERVAL '1 day', 2, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
+  ('66666666-cccc-dddd-eeee-666666666666', '33333333-cccc-dddd-eeee-333333333333', CURRENT_DATE + INTERVAL '2 days', 1, 0, NOW(), NULL);
+
+INSERT INTO production_schedule_parts ("Id", "ProductionScheduleId", "Name", "Quantity")
+VALUES
+  ('aaaa4444-bbbb-cccc-dddd-000000000001', '44444444-aaaa-bbbb-cccc-444444444444', 'Tampo principal com nicho para espelho', 4),
+  ('aaaa4444-bbbb-cccc-dddd-000000000002', '44444444-aaaa-bbbb-cccc-444444444444', 'Moldura com LED embutido', 4),
+  ('aaaa4444-bbbb-cccc-dddd-000000000003', '44444444-aaaa-bbbb-cccc-444444444444', 'Coluna lateral com gavetas', 8),
+  ('bbbb5555-cccc-dddd-eeee-000000000004', '55555555-bbbb-cccc-dddd-555555555555', 'Módulo vertical 60cm', 4),
+  ('bbbb5555-cccc-dddd-eeee-000000000005', '55555555-bbbb-cccc-dddd-555555555555', 'Módulo gaveteiro 90cm', 2),
+  ('bbbb5555-cccc-dddd-eeee-000000000006', '55555555-bbbb-cccc-dddd-555555555555', 'Porta ripada com dobradiça oculta', 4),
+  ('cccc6666-dddd-eeee-ffff-000000000007', '66666666-cccc-dddd-eeee-666666666666', 'Estrutura base com niveladores', 1),
+  ('cccc6666-dddd-eeee-ffff-000000000008', '66666666-cccc-dddd-eeee-666666666666', 'Tampo em quartzo branco 2,4m', 1),
+  ('cccc6666-dddd-eeee-ffff-000000000009', '66666666-cccc-dddd-eeee-666666666666', 'Painel frontal frisado', 2);
 
 COMMIT;
