@@ -9,15 +9,18 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
+var configuredOrigins = builder.Configuration["Cors:AllowedOrigins"]
+    ?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? Array.Empty<string>();
+if (configuredOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Cors:AllowedOrigins must be provided via configuration (e.g., environment variable).");
+}
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "http://backend:5173",
-                "http://frontend:5173")
+        policy.WithOrigins(configuredOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
