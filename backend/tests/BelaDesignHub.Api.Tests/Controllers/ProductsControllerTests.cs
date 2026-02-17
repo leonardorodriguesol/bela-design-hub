@@ -28,6 +28,10 @@ public class ProductsControllerTests : IClassFixture<CustomWebApplicationFactory
         Assert.NotNull(created);
         Assert.Equal(request.Name, created!.Name);
         Assert.Equal(request.Parts.Count, created.Parts.Count);
+        foreach (var requestPart in request.Parts)
+        {
+            Assert.Contains(created.Parts, part => part.Name == requestPart.Name && part.Measurements == requestPart.Measurements);
+        }
     }
 
     [Fact]
@@ -53,7 +57,7 @@ public class ProductsControllerTests : IClassFixture<CustomWebApplicationFactory
             Description = "Novo layout",
             Parts =
             [
-                new ProductPartRequest("Peça nova", 3)
+                new ProductPartRequest("Peça nova", "150x60", 3)
             ]
         };
 
@@ -64,7 +68,8 @@ public class ProductsControllerTests : IClassFixture<CustomWebApplicationFactory
 
         Assert.NotNull(updated);
         Assert.Equal(updateRequest.Name, updated!.Name);
-        Assert.Single(updated.Parts);
+        var updatedPart = Assert.Single(updated.Parts);
+        Assert.Equal("150x60", updatedPart.Measurements);
     }
 
     [Fact]
@@ -85,8 +90,8 @@ public class ProductsControllerTests : IClassFixture<CustomWebApplicationFactory
         Description = "Uso em teste",
         Parts =
         [
-            new ProductPartRequest("Parte A", 1),
-            new ProductPartRequest("Parte B", 2)
+            new ProductPartRequest("Parte A", "100x50", 1),
+            new ProductPartRequest("Parte B", "80x40", 2)
         ]
     };
 

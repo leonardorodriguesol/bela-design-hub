@@ -103,6 +103,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             builder.Property(pp => pp.Name)
                    .IsRequired()
                    .HasMaxLength(200);
+            builder.Property(pp => pp.Measurements)
+                   .HasMaxLength(200);
             builder.Property(pp => pp.Quantity)
                    .IsRequired();
             builder.HasOne(pp => pp.Product)
@@ -134,6 +136,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             builder.HasKey(psp => psp.Id);
             builder.Property(psp => psp.Name)
                      .IsRequired()
+                     .HasMaxLength(200);
+            builder.Property(psp => psp.Measurements)
                      .HasMaxLength(200);
             builder.Property(psp => psp.Quantity)
                      .IsRequired();

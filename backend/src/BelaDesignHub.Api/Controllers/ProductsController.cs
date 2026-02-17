@@ -52,6 +52,7 @@ public class ProductsController(ApplicationDbContext context) : ControllerBase
                 .Select(part => new ProductPart
                 {
                     Name = part.Name,
+                    Measurements = part.Measurements,
                     Quantity = part.Quantity
                 })
                 .ToList()
@@ -85,6 +86,7 @@ public class ProductsController(ApplicationDbContext context) : ControllerBase
         {
             ProductId = product.Id,
             Name = part.Name,
+            Measurements = part.Measurements,
             Quantity = part.Quantity
         }).ToList();
 

@@ -81,8 +81,8 @@ public class ProductionSchedulesControllerTests : IClassFixture<CustomWebApplica
             Description = "Usado em testes",
             Parts =
             [
-                new ProductPartRequest("Estrutura", 1),
-                new ProductPartRequest("Porta", 2)
+                new ProductPartRequest("Estrutura", "120x60", 1),
+                new ProductPartRequest("Porta", "70x50", 2)
             ]
         };
 

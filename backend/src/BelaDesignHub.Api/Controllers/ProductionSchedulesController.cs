@@ -98,6 +98,7 @@ public class ProductionSchedulesController(ApplicationDbContext context) : Contr
                 .Select(part => new ProductionSchedulePart
                 {
                     Name = part.Name,
+                    Measurements = part.Measurements,
                     Quantity = part.Quantity * request.Quantity
                 })
                 .ToList()
