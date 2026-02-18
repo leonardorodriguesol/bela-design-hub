@@ -144,6 +144,7 @@ export const Orders = () => {
   }, [data, filters.status])
 
   const showEmptyState = !isLoading && !error && displayedOrders.length === 0
+  const totalOrders = data?.length ?? 0
 
   const handleCreate = async (values: OrderFormValues) => {
     setCreateError(null)
@@ -192,19 +193,29 @@ export const Orders = () => {
   }
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2 text-brand-700">
-        <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Pedidos</p>
-        <h2 className="text-2xl font-semibold text-brand-700">Pedidos e status em um só lugar</h2>
-        <p className="text-sm text-brand-500">Lista de pedidos com filtros por cliente e situação para facilitar o acompanhamento.</p>
-        <button
-          type="button"
-          className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-400"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <span aria-hidden>＋</span>
-          Novo pedido
-        </button>
+    <section className="mx-auto max-w-6xl space-y-6">
+      <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
+        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Pedidos</p>
+            <h2 className="text-3xl font-semibold text-brand-800">Acompanhamento comercial</h2>
+            <p className="text-sm text-brand-500">
+              Pedidos com filtros por cliente e status para leitura rápida da operação.
+            </p>
+            <p className="text-xs text-brand-400">
+              {isLoading ? 'Carregando pedidos...' : `${totalOrders.toLocaleString('pt-BR')} pedido(s) no total`}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-400"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <span aria-hidden>＋</span>
+            Novo pedido
+          </button>
+        </div>
       </header>
 
       {feedback && (
@@ -226,7 +237,7 @@ export const Orders = () => {
             <div className="relative">
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+                className="flex w-full items-center justify-between rounded-xl border border-brand-100 bg-white px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
                 onClick={() => setIsCustomerFilterOpen((prev) => !prev)}
               >
                 <span>{selectedCustomerLabel}</span>

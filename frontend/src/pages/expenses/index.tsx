@@ -15,6 +15,19 @@ const categoryOptions: { label: string; value: ExpenseCategory }[] = [
   { label: 'Outros', value: 'Other' },
 ]
 
+const getMonthOptions = (count: number) => {
+  const now = new Date()
+  return Array.from({ length: count }).map((_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - index, 1)
+    return {
+      month: date.getMonth(),
+      year: date.getFullYear(),
+      label: date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+      value: `${date.getFullYear()}-${date.getMonth()}`,
+    }
+  })
+}
+
 const formatDateInput = (value?: string | null) => {
   if (!value) return ''
   const date = new Date(value)
@@ -55,7 +68,22 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
 }
 
 export const Expenses = () => {
-  const [filters, setFilters] = useState<{ startDate?: string; endDate?: string; category?: ExpenseCategory }>({})
+  const monthOptions = useMemo(() => getMonthOptions(12), [])
+  const [selectedMonth, setSelectedMonth] = useState(() => ({
+    month: new Date().getMonth(),
+    year: new Date().getFullYear(),
+  }))
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | ''>('')
+  const filters = useMemo(() => {
+    const startDate = new Date(Date.UTC(selectedMonth.year, selectedMonth.month, 1, 0, 0, 0, 0)).toISOString()
+    const endDate = new Date(Date.UTC(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59, 999)).toISOString()
+
+    return {
+      startDate,
+      endDate,
+      category: selectedCategory || undefined,
+    }
+  }, [selectedCategory, selectedMonth])
   const { data, isLoading, error } = useExpenses(filters)
   const { create, update, remove } = useExpenseMutations()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -68,6 +96,9 @@ export const Expenses = () => {
     if (!data) return 0
     return data.reduce((sum, expense) => sum + expense.amount, 0)
   }, [data])
+  const selectedMonthLabel =
+    monthOptions.find((option) => option.month === selectedMonth.month && option.year === selectedMonth.year)?.label ??
+    ''
 
   const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setFeedback(message)
@@ -126,21 +157,22 @@ export const Expenses = () => {
   }
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2 text-brand-700">
-        <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Despesas</p>
-        <h2 className="text-2xl font-semibold text-brand-700">Custos operacionais da Bella Design</h2>
-        <p className="text-sm text-brand-500">Painel de materiais, logística e demais gastos registrados.</p>
-        <div className="flex flex-wrap items-center gap-4 pt-4">
-          <div className="rounded-2xl border border-brand-100 bg-white px-4 py-3 text-brand-700 shadow-sm">
-            <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Total</p>
-            <p className="text-2xl font-semibold">
-              {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+    <section className="mx-auto max-w-6xl space-y-6">
+      <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
+        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Despesas</p>
+            <h2 className="text-3xl font-semibold text-brand-800">Controle de custos</h2>
+            <p className="text-sm text-brand-500">Registros de materiais, logística e despesas operacionais por mês.</p>
+            <p className="text-xs text-brand-400">
+              {selectedMonthLabel ? `Período selecionado: ${selectedMonthLabel}. ` : ''}
+              Total filtrado: {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </p>
           </div>
+
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-400"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-400"
             onClick={() => setIsCreateOpen(true)}
           >
             <span aria-hidden>＋</span>
@@ -160,40 +192,33 @@ export const Expenses = () => {
       )}
 
       <div className="rounded-2xl border border-brand-100 bg-white/95 p-6 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm text-brand-500">
-            <span className="mb-1 block font-medium text-brand-700">De</span>
-            <input
-              type="date"
-              className="w-full rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
-              value={filters.startDate ?? ''}
+            <span className="mb-1 block font-medium text-brand-700">Mês</span>
+            <select
+              className="w-full rounded-xl border border-brand-100 bg-white px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+              value={`${selectedMonth.year}-${selectedMonth.month}`}
               onChange={(event) =>
-                setFilters((prev) => ({ ...prev, startDate: event.target.value || undefined }))
+                setSelectedMonth(() => {
+                  const [year, month] = event.target.value.split('-').map(Number)
+                  return { year, month }
+                })
               }
-            />
-          </label>
-
-          <label className="text-sm text-brand-500">
-            <span className="mb-1 block font-medium text-brand-700">Até</span>
-            <input
-              type="date"
-              className="w-full rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
-              value={filters.endDate ?? ''}
-              onChange={(event) => setFilters((prev) => ({ ...prev, endDate: event.target.value || undefined }))}
-            />
+            >
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="text-sm text-brand-500">
             <span className="mb-1 block font-medium text-brand-700">Categoria</span>
             <select
-              className="w-full rounded-xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
-              value={filters.category ?? ''}
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  category: (event.target.value as ExpenseCategory) || undefined,
-                }))
-              }
+              className="w-full rounded-xl border border-brand-100 bg-white px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory((event.target.value as ExpenseCategory) || '')}
             >
               <option value="">Todas</option>
               {categoryOptions.map((category) => (

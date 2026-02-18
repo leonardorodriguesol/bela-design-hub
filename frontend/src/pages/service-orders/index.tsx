@@ -315,12 +315,20 @@ export const ServiceOrders = () => {
 
   return (
     <>
-      <section className="space-y-6 screen-only">
-        <header className="space-y-2 text-brand-700">
-          <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Ordens de serviço</p>
-          <h2 className="text-2xl font-bold text-brand-700">Entregas e instalações planejadas</h2>
-          <p className="text-sm text-brand-500">Painel com ordens de serviço por status e informações de planejamento diário da equipe.</p>
-          <div className="flex flex-wrap gap-3">
+      <section className="mx-auto max-w-6xl space-y-6 screen-only">
+        <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Ordens de serviço</p>
+              <h2 className="text-3xl font-semibold text-brand-800">Entregas e instalações</h2>
+              <p className="text-sm text-brand-500">
+                Ordens geradas a partir dos pedidos para organizar execução e impressão.
+              </p>
+              <p className="text-xs text-brand-400">
+                {isLoading ? 'Carregando ordens...' : `${displayedOrders.length.toLocaleString('pt-BR')} ordem(ns) registrada(s)`}
+              </p>
+            </div>
+
             <IconActionButton
               label="Gerar ordem de serviço"
               variant="primary"

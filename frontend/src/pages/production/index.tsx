@@ -230,15 +230,18 @@ export const Production = () => {
 
   return (
     <>
-      <section className="space-y-6 screen-only">
+      <section className="mx-auto max-w-6xl space-y-6 screen-only">
         <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
-          <div className="flex flex-col gap-4 text-brand-800 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-col gap-2 md:gap-3">
-              <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-3">
-                <h2 className="text-3xl font-semibold">Produção diária</h2>
-                <span className="text-base font-medium text-brand-500">{formatDate(selectedDate)}</span>
-              </div>
-              <p className="text-sm text-brand-500">Planejamento do dia com catálogo e peças vinculadas a cada produto.</p>
+          <div className="flex flex-col gap-5 text-brand-800 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Produção</p>
+              <h2 className="text-3xl font-semibold text-brand-800">Planejamento diário</h2>
+              <p className="text-sm text-brand-500">Agenda de fabricação com quantidades, peças e histórico por data.</p>
+              <p className="text-xs text-brand-400">
+                {loadingSchedules
+                  ? 'Carregando agenda...'
+                  : `${daySchedules.length.toLocaleString('pt-BR')} item(ns) planejado(s) em ${formatDate(selectedDate)}`}
+              </p>
             </div>
 
             <div className="flex flex-col gap-3 md:items-end">
@@ -246,7 +249,7 @@ export const Production = () => {
                 <span>Histórico de produção</span>
                 <input
                   type="date"
-                  className="mt-1 rounded-2xl border border-brand-100 px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+                  className="mt-1 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
                   value={selectedDate}
                   onChange={(event) => setSelectedDate(event.target.value || getLocalDateString())}
                 />
@@ -254,7 +257,7 @@ export const Production = () => {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3 md:justify-end">
                 <button
                   type="button"
-                  className="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow transition hover:bg-brand-400"
+                  className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-400"
                   onClick={() => {
                     setEditingProduct(null)
                     setProductModalOpen(true)
@@ -265,7 +268,7 @@ export const Production = () => {
                 </button>
                 <button
                   type="button"
-                  className="rounded-2xl border border-brand-200 px-4 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
+                  className="rounded-xl border border-brand-200 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
                   onClick={() => setCatalogOpen(true)}
                 >
                   Ver catálogo
