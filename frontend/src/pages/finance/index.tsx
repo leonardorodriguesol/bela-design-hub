@@ -74,7 +74,7 @@ export const Finance = () => {
           <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Controle financeiro</p>
           <h1 className="text-3xl font-semibold text-brand-800">Fluxo financeiro da Bella Design</h1>
           <p className="text-base text-brand-500">
-            Visualize receitas confirmadas e despesas registradas para manter seu caixa saudável.
+            Visão consolidada das receitas confirmadas e despesas registradas para acompanhar a saúde do caixa.
           </p>
         </header>
 

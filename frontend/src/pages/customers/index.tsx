@@ -66,8 +66,8 @@ export const Customers = () => {
     <section className="space-y-6">
       <header className="space-y-2 text-brand-700">
         <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Clientes</p>
-        <h2 className="text-2xl font-semibold text-brand-700">Gerencie seus clientes</h2>
-        <p className="text-sm text-brand-500">Visualize e cadastre clientes usados em todos os pedidos.</p>
+        <h2 className="text-2xl font-semibold text-brand-700">Base de clientes da Bella Design</h2>
+        <p className="text-sm text-brand-500">Registro centralizado dos clientes utilizados em todos os pedidos.</p>
         <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <label className="flex w-full max-w-md flex-col text-sm text-brand-500">
             <span className="mb-1 font-medium text-brand-700">Filtrar por nome</span>

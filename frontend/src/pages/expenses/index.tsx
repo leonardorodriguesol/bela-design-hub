@@ -128,8 +128,8 @@ export const Expenses = () => {
     <section className="space-y-6">
       <header className="space-y-2 text-brand-700">
         <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Despesas</p>
-        <h2 className="text-2xl font-semibold text-brand-700">Controle seus custos</h2>
-        <p className="text-sm text-brand-500">Monitore materiais, logística e demais gastos.</p>
+        <h2 className="text-2xl font-semibold text-brand-700">Custos operacionais da Bella Design</h2>
+        <p className="text-sm text-brand-500">Painel de materiais, logística e demais gastos registrados.</p>
         <div className="flex flex-wrap items-center gap-4 pt-4">
           <div className="rounded-2xl border border-brand-100 bg-white px-4 py-3 text-brand-700 shadow-sm">
             <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Total</p>

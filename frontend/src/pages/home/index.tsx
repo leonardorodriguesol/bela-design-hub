@@ -15,8 +15,8 @@ export const Home = () => {
               Painel unificado para clientes, pedidos e finanças
             </h1>
             <p className="text-base text-brand-600">
-              Controle toda a operação da Bella Design em um só lugar: cadastre clientes, acompanhe pedidos, registre despesas
-              e visualize indicadores financeiros com clareza.
+              Painel que reúne toda a operação da Bella Design em um só lugar, com cadastro de clientes, acompanhamento de pedidos,
+              registro de despesas e indicadores financeiros claros.
             </p>
           </div>
           <div className="flex flex-col gap-3 text-sm font-semibold text-brand-500 md:flex-row">

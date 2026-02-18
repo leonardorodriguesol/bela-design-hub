@@ -6,6 +6,7 @@ const pageTitles: Record<string, string> = {
   '/customers': 'Clientes',
   '/orders': 'Pedidos',
   '/expenses': 'Despesas',
+  '/production': 'Produção',
 }
 
 export const Header = () => {

@@ -194,10 +194,8 @@ export const Orders = () => {
     <section className="space-y-6">
       <header className="space-y-2 text-brand-700">
         <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Pedidos</p>
-        <h2 className="text-2xl font-semibold text-brand-700">Acompanhe pedidos e status</h2>
-        <p className="text-sm text-brand-500">
-          Use os filtros abaixo para encontrar pedidos por cliente ou situação.
-        </p>
+        <h2 className="text-2xl font-semibold text-brand-700">Pedidos e status em um só lugar</h2>
+        <p className="text-sm text-brand-500">Lista de pedidos com filtros por cliente e situação para facilitar o acompanhamento.</p>
         <button
           type="button"
           className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-400"

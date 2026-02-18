@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { ProductForm } from '../../components/production/ProductForm'
 import { useProductMutations } from '../../hooks/useProductMutations'
@@ -67,6 +67,47 @@ export const Production = () => {
   const [planProductId, setPlanProductId] = useState('')
   const [planQuantity, setPlanQuantity] = useState(1)
   const [planError, setPlanError] = useState<string | null>(null)
+  const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null)
+  const [expandedCatalogId, setExpandedCatalogId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `@media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .screen-only {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .print-only table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .print-only table th,
+      .print-only table td {
+        border: 1px solid #000;
+        padding: 6px;
+        text-align: left;
+      }
+      .print-only table th {
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+    }`
+    document.head.append(style)
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
+
+  const handlePrintPlan = () => {
+    window.print()
+  }
 
   const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setFeedback(message)
@@ -138,59 +179,47 @@ export const Production = () => {
   }
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-3 rounded-3xl border border-brand-100 bg-white/90 p-6 text-brand-700 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Produção diária</p>
-            <h2 className="text-3xl font-semibold text-brand-800">Planeje apenas o que entra hoje</h2>
-            <p className="text-sm text-brand-500">Selecione a data, informe os produtos e comece o dia com o plano alinhado.</p>
-          </div>
-          <label className="text-sm text-brand-600">
-            <span className="mb-1 block font-semibold text-brand-700">Dia de produção</span>
-            <input
-              type="date"
-              className="w-full rounded-2xl border border-brand-100 px-4 py-2 text-brand-700 focus:border-brand-500 focus:outline-none"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value || getLocalDateString())}
-            />
-          </label>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-dashed border-brand-200 px-4 py-3 text-brand-600">
-            <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Produtos cadastrados</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-2xl font-semibold text-brand-800">{products?.length ?? 0}</p>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-2xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
-                onClick={() => {
-                  setEditingProduct(null)
-                  setProductModalOpen(true)
-                  setFormError(null)
-                }}
-              >
-                <span aria-hidden>＋</span>
-                Novo produto
-              </button>
+    <>
+      <section className="space-y-6 screen-only">
+        <div className="flex flex-col items-end gap-1 text-xs uppercase tracking-[0.4em] text-brand-400">
+          <span>Histórico de produção</span>
+          <input
+            type="date"
+            className="rounded-2xl border border-brand-100 px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+            value={selectedDate}
+            onChange={(event) => setSelectedDate(event.target.value || getLocalDateString())}
+          />
+      </div>
+
+      <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
+        <div className="flex flex-col gap-4 text-brand-800 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:gap-3">
+            <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-3">
+              <h2 className="text-3xl font-semibold">Produção diária</h2>
+              <span className="text-base font-medium text-brand-500">{formatDate(selectedDate)}</span>
             </div>
+            <p className="text-sm text-brand-500">Planejamento do dia com catálogo e peças vinculadas a cada produto.</p>
           </div>
-          <div className="rounded-2xl border border-brand-100 px-4 py-3 text-brand-600">
-            <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Quantidade planejada no dia</p>
-            <p className="mt-2 text-2xl font-semibold text-brand-800">{totalQuantity}</p>
-          </div>
-          <div className="rounded-2xl border border-brand-100 px-4 py-3 text-brand-600">
-            <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Catálogo</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-sm text-brand-500">Visualize peças e combinações</p>
-              <button
-                type="button"
-                className="rounded-2xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
-                onClick={() => setCatalogOpen(true)}
-              >
-                Ver catálogo
-              </button>
-            </div>
+
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3 md:justify-end">
+            <button
+              type="button"
+              className="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow transition hover:bg-brand-400"
+              onClick={() => {
+                setEditingProduct(null)
+                setProductModalOpen(true)
+                setFormError(null)
+              }}
+            >
+              Cadastrar produto
+            </button>
+            <button
+              type="button"
+              className="rounded-2xl border border-brand-200 px-4 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
+              onClick={() => setCatalogOpen(true)}
+            >
+              Ver catálogo
+            </button>
           </div>
         </div>
       </header>
@@ -205,15 +234,15 @@ export const Production = () => {
         </div>
       )}
 
-      <section className="space-y-4 rounded-3xl border border-brand-100 bg-white/95 p-6 shadow-sm">
-        <div className="space-y-4">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        <section className="rounded-3xl border border-brand-100 bg-white/95 p-5 text-brand-700 shadow-sm">
           <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Plano do dia</p>
-            <h3 className="text-xl font-semibold text-brand-800">Inclua o que será produzido em {formatDate(selectedDate)}</h3>
+            <h3 className="text-xl font-semibold text-brand-800">Adicionar produção</h3>
+            <p className="text-sm text-brand-500">Seleção de produto do catálogo para gerar as peças necessárias no dia.</p>
           </div>
 
           <form
-            className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4 md:flex-row md:items-end"
+            className="mt-4 space-y-4"
             onSubmit={async (event) => {
               event.preventDefault()
               setPlanError(null)
@@ -235,14 +264,14 @@ export const Production = () => {
               }
             }}
           >
-            <label className="flex-1 text-sm text-brand-600">
+            <label className="text-sm text-brand-600">
               <span className="mb-1 block font-semibold text-brand-700">Produto</span>
               <select
                 className="w-full rounded-2xl border border-brand-100 px-4 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
                 value={planProductId}
                 onChange={(event) => setPlanProductId(event.target.value)}
               >
-                <option value="">Selecione</option>
+                <option value="">Itens do catálogo</option>
                 {products?.map((product) => (
                   <option key={product.id} value={product.id}>
                     {product.name}
@@ -251,7 +280,7 @@ export const Production = () => {
               </select>
             </label>
 
-            <label className="w-full text-sm text-brand-600 md:w-40">
+            <label className="text-sm text-brand-600">
               <span className="mb-1 block font-semibold text-brand-700">Quantidade</span>
               <input
                 type="number"
@@ -264,7 +293,7 @@ export const Production = () => {
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 md:w-auto"
+              className="w-full rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400"
               disabled={createSchedule.isPending}
             >
               {createSchedule.isPending ? 'Salvando...' : 'Adicionar ao plano'}
@@ -273,65 +302,98 @@ export const Production = () => {
 
           {planError && <p className="text-sm text-red-600">{planError}</p>}
           {formError && <p className="text-sm text-red-600">{formError}</p>}
-        </div>
+        </section>
 
-        {loadingSchedules && <p className="text-sm text-brand-500">Carregando planejamentos...</p>}
-        {schedulesError && (
-          <p className="text-sm text-red-600">Não foi possível carregar os planejamentos. Verifique se a API está ativa.</p>
-        )}
-        {!loadingSchedules && !schedulesError && daySchedules.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-brand-200 px-4 py-6 text-center text-sm text-brand-500">
-            Nenhum item planejado para {formatDate(selectedDate)}.
-          </p>
-        )}
+        <section className="rounded-3xl border border-brand-100 bg-white/95 p-5 text-brand-700 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-brand-800">Plano de hoje</h3>
+              <p className="text-sm text-brand-500">Lista das produções confirmadas e das peças calculadas para o dia.</p>
+            </div>
+            <div className="flex flex-col gap-2 text-xs font-semibold text-brand-600 sm:flex-row sm:items-center sm:gap-3">
+              <span className="rounded-full border border-brand-100 px-4 py-1">Total: {totalQuantity}</span>
+              <button
+                type="button"
+                className="rounded-2xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
+                onClick={handlePrintPlan}
+              >
+                Imprimir plano
+              </button>
+            </div>
+          </div>
 
-        <div className="space-y-3">
-          {daySchedules.map((schedule) => {
-            const productName = schedule.product?.name ?? 'Produto'
-            return (
-              <article key={schedule.id} className="rounded-2xl border border-brand-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Produto</p>
-                    <h4 className="text-lg font-semibold text-brand-800">{productName}</h4>
-                    <p className="text-sm text-brand-500">Quantidade: {schedule.quantity}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="self-start rounded-full border border-transparent p-1.5 text-brand-500 transition hover:border-brand-100 hover:bg-brand-50"
-                    title="Remover do plano"
-                    onClick={() => handleDeleteSchedule(schedule)}
-                    disabled={removeSchedule.isPending}
-                  >
-                    🗑️
-                  </button>
-                </div>
+          <div className="mt-4 space-y-3">
+            {loadingSchedules && <p className="text-sm text-brand-500">Carregando...</p>}
+            {schedulesError && <p className="text-sm text-red-600">Erro ao carregar o plano.</p>}
+            {!loadingSchedules && !schedulesError && daySchedules.length === 0 && (
+              <p className="rounded-2xl border border-dashed border-brand-200 px-4 py-6 text-center text-sm text-brand-500">
+                Nada planejado para {formatDate(selectedDate)}.
+              </p>
+            )}
 
-                {schedule.parts.length > 0 && (
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-left text-sm text-brand-700">
-                      <thead>
-                        <tr className="text-xs uppercase tracking-wide text-brand-400">
-                          <th className="pb-1">Peça</th>
-                          <th className="pb-1 text-right">Qtd.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {schedule.parts.map((part) => (
-                          <tr key={`${schedule.id}-${part.name}`}>
-                            <td className="py-1 text-brand-600">{part.name}</td>
-                            <td className="py-1 text-right text-brand-800">{part.quantity}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </article>
-            )
-          })}
-        </div>
-      </section>
+            <ul className="divide-y divide-brand-100 rounded-2xl border border-brand-50 bg-white">
+              {daySchedules.map((schedule) => {
+                const productName = schedule.product?.name ?? 'Produto'
+                const expanded = expandedScheduleId === schedule.id
+
+                return (
+                  <li key={schedule.id} className="p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="product-header">
+                        <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Produto</p>
+                        <h4 className="text-lg font-semibold text-brand-800">{productName}</h4>
+                        <p className="text-sm text-brand-500">Qtd: {schedule.quantity}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-brand-100 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                          onClick={() => setExpandedScheduleId(expanded ? null : schedule.id)}
+                        >
+                          {expanded ? 'Ocultar peças' : 'Ver peças'}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-full border border-transparent p-1.5 text-brand-500 transition hover:border-brand-100 hover:bg-brand-50"
+                          title="Remover do plano"
+                          onClick={() => handleDeleteSchedule(schedule)}
+                          disabled={removeSchedule.isPending}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+
+                    {expanded && schedule.parts.length > 0 && (
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="w-full text-left text-sm text-brand-700">
+                          <thead>
+                            <tr className="text-xs uppercase tracking-wide text-brand-400">
+                              <th className="pb-1">Peça</th>
+                              <th className="pb-1">Medidas</th>
+                              <th className="pb-1 text-right">Qtd.</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {schedule.parts.map((part) => (
+                              <tr key={`${schedule.id}-${part.name}`}>
+                                <td className="py-1 text-brand-600">{part.name}</td>
+                                <td className="py-1 text-brand-500">{part.measurements ?? '—'}</td>
+                                <td className="py-1 text-right text-brand-800">{part.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </section>
+      </div>
 
       {(productModalOpen || editingProduct) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
@@ -378,7 +440,6 @@ export const Production = () => {
               <div>
                 <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Catálogo</p>
                 <h3 className="text-2xl font-semibold">Produtos e peças</h3>
-                <p className="text-sm text-brand-500">Use como referência rápida na hora de planejar.</p>
               </div>
               <div className="flex gap-3">
                 <button
@@ -406,23 +467,56 @@ export const Production = () => {
 
             <div className="max-h-[60vh] overflow-y-auto">
               {products && products.length > 0 ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {products.map((product) => (
-                    <article key={product.id} className="rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
-                      <h4 className="text-lg font-semibold text-brand-800">{product.name}</h4>
-                      {product.description && <p className="text-sm text-brand-500">{product.description}</p>}
-                      <p className="mt-3 text-xs uppercase tracking-[0.3em] text-brand-400">Peças</p>
-                      <ul className="mt-1 space-y-1 text-sm text-brand-700">
-                        {product.parts.map((part) => (
-                          <li key={`${product.id}-${part.name}`} className="flex items-center justify-between rounded-xl bg-white px-3 py-1">
-                            <span>{part.name}</span>
-                            <span className="text-brand-500">x{part.quantity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </article>
-                  ))}
-                </div>
+                <ul className="divide-y divide-brand-100 rounded-2xl border border-brand-50 bg-brand-50/40">
+                  {products.map((product) => {
+                    const expanded = expandedCatalogId === product.id
+                    return (
+                      <li key={product.id} className="p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h4 className="text-lg font-semibold text-brand-800">{product.name}</h4>
+                            {product.description && <p className="text-sm text-brand-500">{product.description}</p>}
+                            <p className="text-xs text-brand-400">{product.parts.length} peça(s)</p>
+                          </div>
+                          <button
+                            type="button"
+                            className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                            onClick={() => setExpandedCatalogId(expanded ? null : product.id)}
+                          >
+                            {expanded ? 'Ocultar peças' : 'Ver peças'}
+                          </button>
+                        </div>
+
+                        {expanded && (
+                          <div className="mt-3 overflow-x-auto">
+                            {product.parts.length > 0 ? (
+                              <table className="w-full text-left text-sm text-brand-700">
+                                <thead>
+                                  <tr className="text-xs uppercase tracking-wide text-brand-400">
+                                    <th className="pb-1">Peça</th>
+                                    <th className="pb-1">Medidas</th>
+                                    <th className="pb-1 text-right">Qtd.</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {product.parts.map((part) => (
+                                    <tr key={`${product.id}-${part.name}`}>
+                                      <td className="py-1 text-brand-600">{part.name}</td>
+                                      <td className="py-1 text-brand-500">{part.measurements ?? 'Sem medidas'}</td>
+                                      <td className="py-1 text-right text-brand-800">{part.quantity}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p className="text-sm text-brand-500">Sem peças cadastradas.</p>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
               ) : (
                 <p className="rounded-2xl border border-dashed border-brand-200 px-4 py-6 text-center text-sm text-brand-500">
                   Nenhum produto cadastrado ainda.
@@ -432,6 +526,75 @@ export const Production = () => {
           </div>
         </div>
       )}
-    </section>
+      </section>
+
+      <section className="print-only hidden">
+        <style>{`
+          .print-only {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 24px;
+            color: #000;
+            font-family: 'Segoe UI', sans-serif;
+          }
+          .print-only header {
+            margin-bottom: 16px;
+          }
+          .print-only table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+          }
+          .print-only table th,
+          .print-only table td {
+            border: 1px solid #000;
+            padding: 6px;
+          }
+          .print-only table th {
+            text-transform: uppercase;
+            font-weight: 600;
+          }
+        `}</style>
+        <header>
+          <p style={{ textTransform: 'uppercase', letterSpacing: '.3em', fontSize: '0.75rem', marginBottom: '4px' }}>Bella Design</p>
+          <h2 style={{ fontSize: '2rem', margin: 0 }}>Plano diário – {formatDate(selectedDate)}</h2>
+          <p style={{ margin: '4px 0 12px' }}>Resumo das peças necessárias para o dia.</p>
+        </header>
+        {daySchedules.length > 0 ? (
+          daySchedules.map((schedule) => (
+            <div key={schedule.id} style={{ marginBottom: '24px' }}>
+              <h3 style={{ margin: '0 0 4px' }}>{schedule.product?.name ?? 'Produto'}</h3>
+              <p style={{ margin: '0 0 8px' }}>Quantidade planejada: {schedule.quantity}</p>
+              {schedule.parts.length > 0 ? (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Peça</th>
+                      <th>Medidas</th>
+                      <th>Quantidade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedule.parts.map((part) => (
+                      <tr key={`${schedule.id}-${part.name}`}>
+                        <td>{part.name}</td>
+                        <td>{part.measurements ?? '—'}</td>
+                        <td>{part.quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>Sem peças cadastradas para este produto.</p>
+              )}
+            </div>
+          ))
+        ) : (
+          <p>Nenhum item planejado para {formatDate(selectedDate)}.</p>
+        )}
+      </section>
+    </>
   )
 }

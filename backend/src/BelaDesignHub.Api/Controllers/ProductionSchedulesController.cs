@@ -88,6 +88,46 @@ public class ProductionSchedulesController(ApplicationDbContext context) : Contr
             return BadRequest("Produto não possui peças cadastradas.");
         }
 
+        var existingSchedule = await _context.ProductionSchedules
+            .Include(ps => ps.Parts)
+            .FirstOrDefaultAsync(ps => ps.ProductId == product.Id && ps.ScheduledDate == request.ScheduledDate, cancellationToken);
+
+        if (existingSchedule is not null)
+        {
+            existingSchedule.Quantity += request.Quantity;
+            existingSchedule.UpdatedAt = DateTime.UtcNow;
+
+            foreach (var productPart in product.Parts)
+            {
+                var schedulePart = existingSchedule.Parts.FirstOrDefault(part => part.Name == productPart.Name);
+
+                if (schedulePart is null)
+                {
+                    existingSchedule.Parts.Add(new ProductionSchedulePart
+                    {
+                        ProductionScheduleId = existingSchedule.Id,
+                        Name = productPart.Name,
+                        Measurements = productPart.Measurements,
+                        Quantity = productPart.Quantity * existingSchedule.Quantity
+                    });
+                }
+                else
+                {
+                    schedulePart.Measurements = productPart.Measurements;
+                    schedulePart.Quantity = productPart.Quantity * existingSchedule.Quantity;
+                }
+            }
+
+            var productPartNames = product.Parts.Select(part => part.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            existingSchedule.Parts = existingSchedule.Parts
+                .Where(part => productPartNames.Contains(part.Name))
+                .ToList();
+
+            await _context.SaveChangesAsync(cancellationToken);
+            existingSchedule.Product = product;
+            return Ok(existingSchedule);
+        }
+
         var schedule = new ProductionSchedule
         {
             ProductId = product.Id,

@@ -1,6 +1,7 @@
 export interface ProductPart {
   id?: string
   name: string
+  measurements?: string | null
   quantity: number
 }
 
@@ -13,10 +14,16 @@ export interface Product {
   parts: ProductPart[]
 }
 
+export interface ProductPartInput {
+  name: string
+  measurements?: string | null
+  quantity: number
+}
+
 export interface CreateProductInput {
   name: string
   description?: string | null
-  parts: Array<{ name: string; quantity: number }>
+  parts: ProductPartInput[]
 }
 
 export type UpdateProductInput = CreateProductInput
@@ -26,6 +33,7 @@ export type ProductionStatus = 'Planned' | 'InProgress' | 'Completed' | 'Cancell
 export interface ProductionSchedulePart {
   id?: string
   name: string
+  measurements?: string | null
   quantity: number
 }
 
