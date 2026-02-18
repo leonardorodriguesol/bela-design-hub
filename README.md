@@ -1,30 +1,85 @@
-# Bela Design Hub
+# Bella Design Hub
 
-Sistema completo para a marcenaria Bella Design centralizar o relacionamento com clientes, acompanhar pedidos e controlar despesas do negócio em um único painel. O projeto reúne uma API em .NET 8, uma SPA React e infraestrutura pronta para rodar em containers.
+Plataforma da marcenaria Bella Design para operação comercial, ordens de serviço, produção e financeiro em uma única interface. O projeto combina API REST em .NET 8, SPA React e infraestrutura com Docker Compose.
 
-## Principais recursos
+## Funcionalidades da aplicação
 
-- **Cadastro de clientes** com busca e atualização rápida.
-- **Pedidos** com itens, totais automáticos, filtros por status/cliente e acompanhamento de produção.
-- **Produção** com catálogo de produtos (peças/insumos), planejamento diário, atualização de status e cálculo automático das peças necessárias.
-- **Despesas operacionais** com categorias e notas para manter a saúde financeira em dia.
-- **Dashboard web** pensado para uso diário na operação da marcenaria.
+- **Home da operação** com branding Bella Design e visão geral da proposta do sistema.
+- **Clientes**: CRUD completo, busca por nome e uso integrado em pedidos e ordens de serviço.
+- **Pedidos**:
+  - CRUD completo com itens e cálculo automático de total.
+  - Filtros por cliente e status.
+  - Status operacionais (`Pending`, `InProduction`, `Shipped`, `Delivered`, `Cancelled`) e leitura de atraso na interface (`Atrasado`).
+  - Painel lateral com detalhes, timeline visual do andamento e composição de itens.
+- **Ordens de serviço**:
+  - Geração a partir de um pedido existente.
+  - Inclusão de itens adicionais de serviço.
+  - CRUD completo e atualização de status.
+  - Visualização detalhada e impressão em 2 vias (com dados do cliente, itens e assinatura).
+- **Despesas**:
+  - CRUD completo.
+  - Filtros por mês e categoria (`Materials`, `Labor`, `Logistics`, `Utilities`, `Other`).
+  - Totalização do período filtrado.
+- **Produção**:
+  - Catálogo de produtos com preço padrão, ativação e lista de peças.
+  - Planejamento diário por data e quantidade.
+  - Cálculo automático de peças/insumos por item planejado.
+  - Consolidação de peças do dia e impressão do plano diário.
+- **Financeiro**:
+  - Visão mensal de caixa.
+  - Faturamento calculado pelos pedidos entregues no mês.
+  - Resultado (receita - despesas) e resumo por período.
 
-## Arquitetura em alto nível
+## Arquitetura
 
-| Camada     | Stack principal | Descrição |
-|------------|-----------------|-----------|
-| Backend    | ASP.NET Core 8 + EF Core + PostgreSQL | API REST responsável por clientes, pedidos, itens, despesas e produção (produtos/planejamento). Inclui migrações automáticas e política de CORS configurável via variável `Cors__AllowedOrigins`. |
-| Frontend   | React + Vite + TypeScript + React Query + Tailwind CSS | Interface SPA que consome a API, com filtros avançados e feedback em tempo real. |
-| Infra      | Docker Compose + GitHub Actions | Orquestra Postgres, API e frontend; pipelines de CI constroem/testam e publicam as imagens Docker. |
+| Camada | Stack | Responsabilidade |
+|--------|-------|------------------|
+| Backend | ASP.NET Core 8 + EF Core + PostgreSQL | API REST para clientes, pedidos, ordens de serviço, despesas, produtos e produção. |
+| Frontend | React 19 + Vite + TypeScript + React Query + Tailwind CSS | SPA com módulos operacionais e formulários validados com React Hook Form + Zod. |
+| Infra | Docker Compose + GitHub Actions | Orquestração local (API, frontend, banco) e pipelines de build/teste/publicação de imagens. |
 
-Estrutura do repositório:
+Estrutura:
 
+```text
+backend/   API .NET (Domain, Application, Infrastructure, Api)
+frontend/  SPA React (Vite + TypeScript)
+infra/     Docker Compose, SQL de seed e utilitários
 ```
-backend/   -> API .NET (Domain, Application, Infrastructure, Api)
-frontend/  -> SPA React (Vite + TypeScript)
-infra/     -> Docker Compose, scripts SQL e demais utilitários
-```
+
+## Backend
+
+- **Camadas**: `Domain`, `Application`, `Infrastructure` e `Api`.
+- **Endpoints REST**:
+  - `api/customers`: CRUD de clientes.
+  - `api/orders`: CRUD de pedidos + filtros (`customerId`, `status`, `createdFrom`, `createdTo`).
+  - `api/serviceOrders`: CRUD de ordens de serviço + filtros (`customerId`, `orderId`, `status`, `scheduledFrom`, `scheduledTo`) + `PATCH /status`.
+  - `api/expenses`: CRUD de despesas + filtros (`startDate`, `endDate`, `category`).
+  - `api/products`: CRUD de produtos e peças.
+  - `api/productionSchedules`: CRUD de planejamento de produção + filtros (`scheduledDate`, `startDate`, `endDate`, `status`) + `PATCH /status`.
+- **Infra de dados**:
+  - Migrações aplicadas automaticamente na inicialização da API.
+  - Script de seed em `infra/sql/seed-data.sql`.
+- **Observabilidade e runtime**:
+  - Health check em `/health`.
+  - Swagger habilitado em ambiente de desenvolvimento.
+  - CORS por `Cors__AllowedOrigins` (origens separadas por `;`).
+
+## Frontend
+
+- **Stack**: React 19, React Router, React Query, React Hook Form + Zod, Axios e Tailwind CSS.
+- **Rotas**:
+  - `/` home
+  - `/finance` financeiro
+  - `/customers` clientes
+  - `/orders` pedidos
+  - `/service-orders` ordens de serviço
+  - `/expenses` despesas
+  - `/production` produção
+- **UX da operação**:
+  - Modais de criação/edição.
+  - Feedback de sucesso/erro por ação.
+  - Tabelas com filtros e estados de carregamento/erro.
+  - Impressão dedicada para OS e plano de produção.
 
 ## Como rodar localmente
 
@@ -32,18 +87,22 @@ infra/     -> Docker Compose, scripts SQL e demais utilitários
 
 - .NET SDK 8.0
 - Node.js 20+ e npm
-- Docker (opcional, para rodar tudo em containers)
+- Docker (opcional)
 
 ### Backend
 
 ```bash
 cd backend
-dotnet restore
-dotnet ef database update          # aplica migrações
-dotnet run --project BelaDesignHub.Api/BelaDesignHub.Api.csproj
+dotnet restore BellaDesignHub.sln
+dotnet run --project src/BellaDesignHub.Api/BellaDesignHub.Api.csproj
 ```
 
-A connection string padrão aponta para `localhost`. Para usar outro host (ex.: Docker), sobrescreva `ConnectionStrings__DefaultConnection`.
+Para aplicar migrações manualmente:
+
+```bash
+cd backend
+dotnet ef database update --project src/BellaDesignHub.Infrastructure/BellaDesignHub.Infrastructure.csproj --startup-project src/BellaDesignHub.Api/BellaDesignHub.Api.csproj
+```
 
 ### Frontend
 
@@ -53,52 +112,37 @@ npm install
 VITE_API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
-## Backend
-
-- **Stack**: ASP.NET Core 8 com Entity Framework Core e PostgreSQL, seguindo camadas Domain/Application/Infrastructure/Api.
-- **Domínios**: clientes, pedidos com itens e status, despesas com categorias e datas, produtos com peças e agendas de produção.
-- **Infra de dados**: migrações automáticas, seeding via `infra/sql/seed-data.sql`, connection string configurável por `ConnectionStrings__DefaultConnection`.
-- **CORS e config**: variável `Cors__AllowedOrigins` obrigatória, health checks e Swagger habilitados em desenvolvimento.
-- **Testes**: `dotnet test` cobre domínio, aplicação, infraestrutura e API usando `WebApplicationFactory` com banco em memória.
-
-## Frontend
-
-- **Stack**: React 18 + Vite, TypeScript, React Router DOM, React Query, React Hook Form + Zod e Tailwind CSS.
-- **Páginas**: Home com branding Bella Design, Dashboard financeiro, módulo de Clientes com busca, Pedidos com filtros combinados, Despesas e Produção (catálogo sob demanda + planejamento diário com filtros e atualização de status).
-- **UX**: filtros colapsáveis, mensagens amigáveis sem jargões técnicos, tratamento específico para falhas de conexão e layout responsivo.
-- **Testes**: Vitest + React Testing Library com utilitários em `frontend/tests`; MSW planejado para mocks de API.
-- **Build/Docker**: multi-stage Dockerfile (`frontend/Dockerfile`) gera bundle servido por Nginx; `VITE_API_BASE_URL` define o endpoint da API.
-
 ## Testes
 
-- **Backend:** `cd backend && dotnet test`
-- **Frontend:** `cd frontend && npm run test`
+- Backend: `cd backend && dotnet test BellaDesignHub.sln`
+- Frontend: `cd frontend && npm run test`
 
-Os testes do backend usam `WebApplicationFactory` com banco em memória; no frontend utilizamos Vitest + React Testing Library.
-
-## Executar tudo com Docker Compose
+## Docker Compose
 
 ```bash
 cd infra
 docker compose up --build
 ```
 
-Serviços expostos:
+Serviços:
 
-- API em `http://localhost:8080`
-- Frontend em `http://localhost:4173`
-- Postgres em `localhost:5432` (`postgres` / `postgres`)
+- API: `http://localhost:8080`
+- Frontend: `http://localhost:4173`
+- Postgres: `localhost:5432` (`postgres` / `postgres`)
 
-O Compose também provisiona o banco com o script `infra/sql/seed-data.sql`.
+## Variáveis de ambiente
 
-## Variáveis de ambiente importantes
-
-| Variável | Onde usar | Exemplo |
-|----------|-----------|---------|
-| `ConnectionStrings__DefaultConnection` | API | `Host=postgres;Port=5432;Database=bela_design_hub;Username=postgres;Password=postgres` |
-| `Cors__AllowedOrigins` | API | `http://localhost:4173` ou múltiplos valores separados por `;` |
+| Variável | Contexto | Exemplo |
+|----------|----------|---------|
+| `ConnectionStrings__DefaultConnection` | API | `Host=postgres;Port=5432;Database=bella_design_hub;Username=postgres;Password=postgres` |
+| `Cors__AllowedOrigins` | API | `http://localhost:4173;http://localhost:5173` |
 | `VITE_API_BASE_URL` | Frontend | `http://localhost:8080` |
+| `BELLAHUB_BACKEND_IMAGE` | Docker Compose | `usuario/bella-design-hub-backend:latest` |
+| `BELLAHUB_FRONT_IMAGE` | Docker Compose | `usuario/bella-design-hub-frontend:latest` |
 
 ## CI/CD
 
-O repositório possui workflows no GitHub Actions para backend e frontend, garantindo restauração, build, testes e publicação das imagens Docker `leonardodfg12/bela-design-hub-backend` e `leonardodfg12/bela-design-hub-frontend`.
+Workflows no GitHub Actions:
+
+- `backend-ci.yml`: restore, build, testes com cobertura e publish da imagem backend.
+- `frontend-ci.yml`: lint, build, testes e publish da imagem frontend.

@@ -23,10 +23,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore backend/BelaDesignHub.sln
+        run: dotnet restore backend/BellaDesignHub.sln
 
       - name: Build
-        run: dotnet build backend/BelaDesignHub.sln --configuration Release --no-restore
+        run: dotnet build backend/BellaDesignHub.sln --configuration Release --no-restore
 
   tests:
     runs-on: ubuntu-latest
@@ -44,11 +44,11 @@ jobs:
         run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
       - name: Restore
-        run: dotnet restore backend/BelaDesignHub.sln
+        run: dotnet restore backend/BellaDesignHub.sln
 
       - name: Test
         run: |
-          dotnet test backend/BelaDesignHub.sln --configuration Release --no-restore \
+          dotnet test backend/BellaDesignHub.sln --configuration Release --no-restore \
             --collect:"XPlat Code Coverage" \
             --results-directory TestResults/coverage \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
@@ -66,7 +66,7 @@ jobs:
     needs: tests
     if: github.event_name == 'push'
     env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bela-design-hub-backend
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bella-design-hub-backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4

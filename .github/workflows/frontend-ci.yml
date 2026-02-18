@@ -58,7 +58,7 @@ jobs:
     needs: tests
     if: github.event_name == 'push'
     env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bela-design-hub-frontend
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bella-design-hub-frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4

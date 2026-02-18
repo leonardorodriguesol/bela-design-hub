@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ${BELAHUB_BACKEND_IMAGE:-leonardodfg12/bela-design-hub-backend:latest}
+    image: ${BELLAHUB_BACKEND_IMAGE:-leonardodfg12/bella-design-hub-backend:latest}
     container_name: backend
     pull_policy: always
     depends_on:
@@ -8,13 +8,13 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=bela_design_hub;Username=postgres;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=bella_design_hub;Username=postgres;Password=postgres
       Cors__AllowedOrigins: http://frontend:4173;http://localhost:4173;http://localhost:5173
     ports:
       - "8080:8080"
 
   frontend:
-    image: ${BELAHUB_FRONT_IMAGE:-leonardodfg12/bela-design-hub-frontend:latest}
+    image: ${BELLAHUB_FRONT_IMAGE:-leonardodfg12/bella-design-hub-frontend:latest}
     container_name: frontend
     pull_policy: always
     depends_on:
@@ -37,7 +37,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: bela_design_hub
+      POSTGRES_DB: bella_design_hub
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql:/docker-entrypoint-initdb.d:ro
@@ -47,4 +47,4 @@ services:
 volumes:
   postgres_data:
 # Aplicar script de seed
-# docker compose -f infra/docker-compose.yml exec postgres psql -U postgres -d bela_design_hub -f /docker-entrypoint-initdb.d/seed-data.sql
+# docker compose -f infra/docker-compose.yml exec postgres psql -U postgres -d bella_design_hub -f /docker-entrypoint-initdb.d/seed-data.sql
