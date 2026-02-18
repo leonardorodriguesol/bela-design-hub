@@ -30,6 +30,19 @@ const normalizeStatus = (status: ServiceOrderStatus | number): ServiceOrderStatu
 const mapServiceOrder = (serviceOrder: ServiceOrderApiResponse): ServiceOrder => ({
   ...serviceOrder,
   status: normalizeStatus(serviceOrder.status),
+  order: serviceOrder.order
+    ? {
+        ...serviceOrder.order,
+        items: serviceOrder.order.items.map((item) => ({
+          ...item,
+          unitPrice: Number(item.unitPrice ?? 0),
+        })),
+      }
+    : undefined,
+  items: serviceOrder.items.map((item) => ({
+    ...item,
+    unitPrice: Number(item.unitPrice ?? 0),
+  })),
 })
 
 export const serviceOrdersApi = {

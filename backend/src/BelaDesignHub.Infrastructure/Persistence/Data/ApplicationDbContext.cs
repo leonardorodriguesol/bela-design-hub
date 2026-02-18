@@ -183,6 +183,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                    .HasMaxLength(250);
             builder.Property(soi => soi.Quantity)
                    .IsRequired();
+            builder.Property(soi => soi.UnitPrice)
+                   .HasColumnType("numeric(14,2)")
+                   .IsRequired();
             builder.HasOne(soi => soi.ServiceOrder)
                    .WithMany(so => so.Items)
                    .HasForeignKey(soi => soi.ServiceOrderId)

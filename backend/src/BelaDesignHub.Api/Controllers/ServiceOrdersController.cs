@@ -106,19 +106,50 @@ public class ServiceOrdersController(ApplicationDbContext context) : ControllerB
             return BadRequest("Cliente não encontrado.");
         }
 
-        var items = (request.Items is not null && request.Items.Count > 0)
-            ? request.Items.Select(item => new ServiceOrderItem
+        var orderItemsById = order.Items.ToDictionary(item => item.Id);
+        var requestedItems = request.Items ?? [];
+        var requestedLinkedItems = requestedItems.Where(item => item.OrderItemId.HasValue).ToList();
+
+        if (requestedLinkedItems.Any(item => !orderItemsById.ContainsKey(item.OrderItemId!.Value)))
+        {
+            return BadRequest("Um ou mais itens informados não pertencem ao pedido.");
+        }
+
+        var items = new List<ServiceOrderItem>();
+
+        if (requestedLinkedItems.Count > 0)
+        {
+            items.AddRange(requestedLinkedItems.Select(item =>
             {
-                OrderItemId = item.OrderItemId,
-                Description = item.Description,
-                Quantity = item.Quantity,
-            }).ToList()
-            : order.Items.Select(item => new ServiceOrderItem
+                var sourceItem = orderItemsById[item.OrderItemId!.Value];
+                return new ServiceOrderItem
+                {
+                    OrderItemId = item.OrderItemId,
+                    Description = string.IsNullOrWhiteSpace(item.Description) ? sourceItem.Description : item.Description.Trim(),
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                };
+            }));
+        }
+        else
+        {
+            items.AddRange(order.Items.Select(item => new ServiceOrderItem
             {
                 OrderItemId = item.Id,
                 Description = item.Description,
                 Quantity = item.Quantity,
-            }).ToList();
+                UnitPrice = item.UnitPrice,
+            }));
+        }
+
+        items.AddRange(requestedItems
+            .Where(item => !item.OrderItemId.HasValue)
+            .Select(item => new ServiceOrderItem
+            {
+                Description = item.Description.Trim(),
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+            }));
 
         var serviceOrder = new ServiceOrder
         {

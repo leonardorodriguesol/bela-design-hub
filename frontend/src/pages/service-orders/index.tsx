@@ -6,6 +6,7 @@ import { useCustomers } from '../../hooks/useCustomers'
 import { useOrders } from '../../hooks/useOrders'
 import { useServiceOrderMutations } from '../../hooks/useServiceOrderMutations'
 import { useServiceOrders } from '../../hooks/useServiceOrders'
+import type { Customer } from '../../types/customer'
 import type { Order } from '../../types/order'
 import type { ServiceOrder } from '../../types/serviceOrder'
 
@@ -47,24 +48,54 @@ const formatCurrency = (value: number) =>
     currency: 'BRL',
   })
 
-const getPrintableItems = (serviceOrder: ServiceOrder | null, orderMap: Map<string, Order>): PrintableItem[] => {
+const parseDate = (value?: string | null) => {
+  if (!value) return null
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value
+  const parsed = new Date(normalized)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const formatDate = (value?: string | null) => {
+  const parsed = parseDate(value)
+  if (!parsed) return '—'
+  return parsed.toLocaleDateString('pt-BR')
+}
+
+const getPrintableProductItems = (serviceOrder: ServiceOrder | null, orderMap: Map<string, Order>): PrintableItem[] => {
   if (!serviceOrder) return []
-  const resolvedOrderItems = serviceOrder.order?.items ?? orderMap.get(serviceOrder.orderId)?.items
-  if (resolvedOrderItems?.length) {
-    return resolvedOrderItems.map(({ id, description, quantity, unitPrice }) => ({
-      id,
-      description,
-      quantity,
-      unitPrice,
-    }))
+  const serviceOrderProductItems =
+    serviceOrder.items
+      ?.filter((item) => item.orderItemId)
+      .map((item) => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice ?? 0),
+      })) ?? []
+
+  if (serviceOrderProductItems.length > 0) {
+    return serviceOrderProductItems
   }
 
+  const resolvedOrderItems = serviceOrder.order?.items ?? orderMap.get(serviceOrder.orderId)?.items ?? []
+  return resolvedOrderItems.map(({ id, description, quantity, unitPrice }) => ({
+    id,
+    description,
+    quantity,
+    unitPrice,
+  }))
+}
+
+const getPrintableAdditionalItems = (serviceOrder: ServiceOrder | null): PrintableItem[] => {
+  if (!serviceOrder) return []
   return (
-    serviceOrder.items?.map((item) => ({
+    serviceOrder.items
+      ?.filter((item) => !item.orderItemId)
+      .map((item) => ({
       id: item.id,
       description: item.description,
       quantity: item.quantity,
-      unitPrice: 0,
+      unitPrice: Number(item.unitPrice ?? 0),
     })) ?? []
   )
 }
@@ -90,6 +121,14 @@ export const ServiceOrders = () => {
     }, {})
   }, [customers])
 
+  const customerDetailsMap = useMemo(() => {
+    if (!customers) return {}
+    return customers.reduce<Record<string, Customer>>((acc, customer) => {
+      acc[customer.id] = customer
+      return acc
+    }, {})
+  }, [customers])
+
   const orderMap = useMemo(() => {
     if (!ordersData) return new Map<string, Order>()
     return new Map(ordersData.map((order) => [order.id, order]))
@@ -111,11 +150,27 @@ export const ServiceOrders = () => {
     }))
   }, [customerMap, ordersData])
 
-  const printableItems = useMemo(() => getPrintableItems(orderForPrint, orderMap), [orderForPrint, orderMap])
-  const printableTotal = useMemo(
-    () => printableItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
-    [printableItems],
+  const printableProductItems = useMemo(() => getPrintableProductItems(orderForPrint, orderMap), [orderForPrint, orderMap])
+  const printableAdditionalItems = useMemo(() => getPrintableAdditionalItems(orderForPrint), [orderForPrint])
+  const productsTotal = useMemo(
+    () => printableProductItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+    [printableProductItems],
   )
+  const additionalItemsTotal = useMemo(
+    () => printableAdditionalItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+    [printableAdditionalItems],
+  )
+  const printableGrandTotal = productsTotal + additionalItemsTotal
+  const customerForPrint = useMemo(() => {
+    if (!orderForPrint) return null
+    return customerDetailsMap[orderForPrint.customerId] ?? orderForPrint.customer ?? null
+  }, [customerDetailsMap, orderForPrint])
+
+  const normalizeText = (value?: string | null) => {
+    if (!value) return ''
+    const text = `${value}`.trim()
+    return text
+  }
 
   const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setFeedback(message)
@@ -151,6 +206,7 @@ export const ServiceOrders = () => {
               orderItemId: null,
               description: item.description.trim(),
               quantity: item.quantity,
+              unitPrice: item.unitPrice,
             }))
           : undefined,
     }
@@ -240,12 +296,11 @@ export const ServiceOrders = () => {
 
               {!isLoading && !error &&
                 displayedOrders.map((serviceOrder) => {
-                  const scheduledDate = new Date(serviceOrder.scheduledDate)
                   return (
                     <tr key={serviceOrder.id} className="border-t border-brand-100">
                       <td className="px-6 py-4 text-sm font-semibold text-brand-800">{serviceOrder.order?.code ?? '—'}</td>
                       <td className="px-6 py-4 text-brand-600">{customerMap[serviceOrder.customerId] ?? '—'}</td>
-                      <td className="px-6 py-4 text-brand-600">{scheduledDate.toLocaleDateString('pt-BR')}</td>
+                      <td className="px-6 py-4 text-brand-600">{formatDate(serviceOrder.scheduledDate)}</td>
                       <td className="px-6 py-4 text-brand-600">{serviceOrder.responsible ?? 'Não informado'}</td>
                       <td className="px-6 py-4 text-right text-sm">
                         <div className="flex justify-end gap-2">
@@ -336,7 +391,7 @@ export const ServiceOrders = () => {
             <div className="grid gap-4 rounded-2xl border border-brand-100 bg-white p-4 shadow-sm text-sm">
               <div>
                 <p className="text-brand-400">Data programada</p>
-                <p className="text-brand-700">{new Date(selectedOrder.scheduledDate).toLocaleDateString('pt-BR')}</p>
+                <p className="text-brand-700">{formatDate(selectedOrder.scheduledDate)}</p>
               </div>
               <div>
                 <p className="text-brand-400">Responsável</p>
@@ -361,6 +416,7 @@ export const ServiceOrders = () => {
                   <div key={item.id ?? item.description} className="rounded-xl border border-brand-50 bg-brand-50/60 p-3">
                     <p className="text-sm font-semibold text-brand-700">{item.description}</p>
                     <p className="mt-1 text-sm text-brand-500">Qtd: {item.quantity}</p>
+                    <p className="mt-1 text-sm text-brand-500">Valor unit.: {formatCurrency(Number(item.unitPrice ?? 0))}</p>
                   </div>
                 ))}
               </div>
@@ -400,7 +456,7 @@ export const ServiceOrders = () => {
             }
             .print-view {
               color: #000;
-              font-family: 'Segoe UI', sans-serif;
+              font-family: 'Arial', sans-serif;
               padding: 24px;
               background: #fff;
               width: 100%;
@@ -414,109 +470,265 @@ export const ServiceOrders = () => {
             }
             .print-copy {
               border: 2px solid #000;
-              padding: 16px;
-              min-height: calc(50vh - 24px);
+              padding: 14px 16px;
+              min-height: calc(50vh - 20px);
               display: flex;
               flex-direction: column;
+              gap: 10px;
             }
-            .print-copy header {
+            .print-header {
               display: flex;
               justify-content: space-between;
-              align-items: center;
+              align-items: flex-start;
+            }
+            .print-company {
+              font-weight: 700;
               text-transform: uppercase;
+              letter-spacing: 0.06em;
+              margin: 0;
+            }
+            .print-subtitle {
+              margin: 4px 0 0;
+              font-size: 0.78rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            }
+            .print-identifier {
+              border: 1px solid #000;
+              padding: 6px 10px;
+              text-align: center;
               font-size: 0.8rem;
-              letter-spacing: 0.3em;
+              line-height: 1.3;
             }
-            .print-copy h2 {
-              font-size: 1.6rem;
-              margin: 12px 0 4px;
-            }
-            .print-details {
-              display: grid;
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 8px;
-              margin-bottom: 12px;
+            .print-identifier strong {
+              display: block;
               font-size: 0.95rem;
             }
-            .print-table {
+            .print-info {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 12px;
-              font-size: 0.9rem;
+              font-size: 0.78rem;
             }
-            .print-table th,
-            .print-table td {
+            .print-info td {
+              border: 1px solid #000;
+              padding: 4px 6px;
+            }
+            .print-info td:first-child {
+              width: 160px;
+              font-weight: 600;
+              background: #f7f7f7;
+            }
+            .print-section {
+              border: 1px solid #000;
+              padding: 6px 8px;
+              font-size: 0.78rem;
+            }
+            .print-section h4 {
+              margin: 0;
+              font-size: 0.78rem;
+              text-transform: uppercase;
+              margin-bottom: 4px;
+            }
+            .print-items {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 4px;
+              font-size: 0.78rem;
+            }
+            .print-items th,
+            .print-items td {
+              border: 1px solid #000;
+              padding: 4px;
+              text-align: left;
+            }
+            .print-items tfoot td {
+              font-weight: 700;
+              text-align: right;
+            }
+            .print-note {
               border: 1px solid #000;
               padding: 6px;
-              text-align: left;
+              font-size: 0.78rem;
+              min-height: 38px;
+            }
+            .print-summary {
+              display: grid;
+              grid-template-columns: 1fr 1fr auto;
+              gap: 8px;
+              font-size: 0.78rem;
+            }
+            .print-summary span {
+              border: 1px solid #000;
+              padding: 6px;
             }
             .print-signatures {
               display: flex;
               justify-content: space-between;
-              gap: 16px;
-              margin-top: 20px;
-              font-size: 0.9rem;
+              gap: 24px;
+              margin-top: 8px;
+              font-size: 0.78rem;
             }
             .print-signatures div {
-              width: 48%;
-            }
-            .print-signatures p {
-              margin: 8px 0 0;
+              flex: 1;
               text-align: center;
+            }
+            .print-signature-line {
+              border-top: 1px solid #000;
+              margin-top: 32px;
+              padding-top: 4px;
             }
           `}</style>
           <div className="print-wrapper">
-            {['Via do cliente', 'Via do entregador'].map((label) => (
-              <article key={label} className="print-copy">
-                <header>
-                  <span>Bela Design Hub</span>
-                  <span>{label}</span>
-                </header>
-                <h2>Ordem de serviço — {orderForPrint.order?.code ?? 'Nº'}</h2>
-                <p>Cliente: {customerMap[orderForPrint.customerId] ?? '—'}</p>
-                <div className="print-details">
-                  <span>Data prevista: {new Date(orderForPrint.scheduledDate).toLocaleDateString('pt-BR')}</span>
-                  <span>Responsável: {orderForPrint.responsible ?? 'Não informado'}</span>
-                  <span>Gerado em: {new Date(orderForPrint.createdAt).toLocaleDateString('pt-BR')}</span>
-                  <span>Total: {formatCurrency(printableTotal)}</span>
-                </div>
-                {orderForPrint.notes && <p>Observações: {orderForPrint.notes}</p>}
-                <table className="print-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '45%' }}>Item</th>
-                      <th style={{ width: '15%' }}>Qtd</th>
-                      <th style={{ width: '20%' }}>Valor unit.</th>
-                      <th style={{ width: '20%' }}>Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {printableItems.length ? (
-                      printableItems.map((item) => (
-                        <tr key={item.id ?? item.description}>
-                          <td>{item.description}</td>
-                          <td>{item.quantity}</td>
-                          <td>{formatCurrency(item.unitPrice)}</td>
-                          <td>{formatCurrency(item.unitPrice * item.quantity)}</td>
-                        </tr>
-                      ))
-                    ) : (
+            {['Via do cliente', 'Via do entregador'].map((label) => {
+              const companyName = 'Bella Design'
+              const osNumber = orderForPrint.order?.code ?? orderForPrint.id.slice(0, 8).toUpperCase()
+              const customerName =
+                normalizeText(customerForPrint?.name) ||
+                normalizeText(customerMap[orderForPrint.customerId]) ||
+                'Não informado'
+              const customerPhone = normalizeText(customerForPrint?.phone) || 'Não informado'
+              const customerEmail = normalizeText(customerForPrint?.email) || 'Não informado'
+              const customerAddress = normalizeText(customerForPrint?.address) || 'Não informado'
+
+              return (
+                <article key={label} className="print-copy">
+                  <div className="print-header">
+                    <div>
+                      <p className="print-company">{companyName}</p>
+                      <p className="print-subtitle">Ordem de serviço de marcenaria</p>
+                    </div>
+                    <div className="print-identifier">
+                      <span>OS Nº</span>
+                      <strong>{osNumber}</strong>
+                    </div>
+                  </div>
+
+                  <table className="print-info">
+                    <tbody>
                       <tr>
-                        <td colSpan={4}>Nenhum item encontrado.</td>
+                        <td>Cliente</td>
+                        <td>{customerName}</td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-                <div className="print-signatures">
-                  <div>
-                    <p>Assinatura do cliente</p>
+                      <tr>
+                        <td>Telefone</td>
+                        <td>{customerPhone}</td>
+                      </tr>
+                      <tr>
+                        <td>Email</td>
+                        <td>{customerEmail}</td>
+                      </tr>
+                      <tr>
+                        <td>Endereço</td>
+                        <td>{customerAddress}</td>
+                      </tr>
+                      <tr>
+                        <td>Data programada</td>
+                        <td>{formatDate(orderForPrint.scheduledDate)}</td>
+                      </tr>
+                      <tr>
+                        <td>Responsável</td>
+                        <td>{normalizeText(orderForPrint.responsible) || 'Não informado'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <section className="print-section">
+                    <h4>Descrição do produto</h4>
+                    <table className="print-items">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '44%' }}>Descrição</th>
+                          <th style={{ width: '12%' }}>Qtd</th>
+                          <th style={{ width: '22%' }}>Valor unit.</th>
+                          <th style={{ width: '22%' }}>Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {printableProductItems.length ? (
+                          printableProductItems.map((item) => (
+                            <tr key={item.id ?? item.description}>
+                              <td>{item.description}</td>
+                              <td>{item.quantity}</td>
+                              <td>{formatCurrency(item.unitPrice)}</td>
+                              <td>{formatCurrency(item.unitPrice * item.quantity)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>Nenhum produto vinculado.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colSpan={4}>Total dos produtos: {formatCurrency(productsTotal)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </section>
+
+                  <section className="print-section">
+                    <h4>Soma dos itens adicionais</h4>
+                    <table className="print-items">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '44%' }}>Descrição</th>
+                          <th style={{ width: '12%' }}>Qtd</th>
+                          <th style={{ width: '22%' }}>Valor unit.</th>
+                          <th style={{ width: '22%' }}>Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {printableAdditionalItems.length ? (
+                          printableAdditionalItems.map((item) => (
+                            <tr key={item.id ?? item.description}>
+                              <td>{item.description}</td>
+                              <td>{item.quantity}</td>
+                              <td>{formatCurrency(item.unitPrice)}</td>
+                              <td>{formatCurrency(item.unitPrice * item.quantity)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>Nenhum item adicional informado.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colSpan={4}>Soma dos itens adicionais: {formatCurrency(additionalItemsTotal)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </section>
+
+                  <div className="print-note">
+                    <strong>Observações: </strong>
+                    {normalizeText(orderForPrint.notes) || 'Não informado'}
                   </div>
-                  <div>
-                    <p>Assinatura do entregador</p>
+
+                  <div className="print-summary">
+                    <span>
+                      Total da OS:
+                      <strong>{formatCurrency(printableGrandTotal)}</strong>
+                    </span>
+                    <span>Emissão: {formatDate(orderForPrint.createdAt)}</span>
+                    <span>
+                      {label}
+                    </span>
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  <div className="print-signatures">
+                    <div>
+                      <div className="print-signature-line">Cliente</div>
+                    </div>
+                    <div>
+                      <div className="print-signature-line">Técnico</div>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         </section>
       )}

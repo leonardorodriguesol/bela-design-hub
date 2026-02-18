@@ -6,6 +6,7 @@ export interface ServiceOrderItem {
   orderItemId?: string | null
   description: string
   quantity: number
+  unitPrice: number
 }
 
 export interface ServiceOrder {
@@ -32,6 +33,9 @@ export interface ServiceOrder {
   customer?: {
     id: string
     name: string
+    email?: string | null
+    phone?: string | null
+    address?: string | null
   }
   items: ServiceOrderItem[]
 }
@@ -46,6 +50,7 @@ export interface CreateServiceOrderInput {
     orderItemId?: string | null
     description: string
     quantity: number
+    unitPrice: number
   }>
 }
 

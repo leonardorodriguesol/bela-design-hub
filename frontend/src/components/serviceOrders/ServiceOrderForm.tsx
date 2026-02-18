@@ -11,6 +11,7 @@ const extraItemsSchema = z.array(
       .number()
       .int('Somente números inteiros')
       .min(1, 'Quantidade mínima é 1'),
+    unitPrice: z.coerce.number().min(0, 'O valor não pode ser negativo'),
   }),
 )
 
@@ -186,7 +187,7 @@ export const ServiceOrderForm = ({ customers, orders, defaultValues, onSubmit, i
           <button
             type="button"
             className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
-            onClick={() => append({ description: '', quantity: 1 })}
+            onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
           >
             Adicionar serviço
           </button>
@@ -195,7 +196,10 @@ export const ServiceOrderForm = ({ customers, orders, defaultValues, onSubmit, i
         {fields.length > 0 ? (
           <div className="space-y-3">
             {fields.map((field, index) => (
-              <div key={field.id} className="grid gap-3 rounded-2xl border border-brand-100 p-3 md:grid-cols-[2fr_120px_auto]">
+              <div
+                key={field.id}
+                className="grid gap-3 rounded-2xl border border-brand-100 p-3 md:grid-cols-[2fr_120px_170px_auto]"
+              >
                 <div>
                   <label className="text-xs font-semibold text-brand-500">
                     Descrição
@@ -221,6 +225,21 @@ export const ServiceOrderForm = ({ customers, orders, defaultValues, onSubmit, i
                   </label>
                   {errors.extraItems?.[index]?.quantity && (
                     <p className="text-xs text-red-600">{errors.extraItems[index]?.quantity?.message}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-brand-500">
+                    Valor unitário (R$)
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      className="mt-1 w-full rounded-2xl border border-brand-100 px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+                      {...register(`extraItems.${index}.unitPrice` as const, { valueAsNumber: true })}
+                    />
+                  </label>
+                  {errors.extraItems?.[index]?.unitPrice && (
+                    <p className="text-xs text-red-600">{errors.extraItems[index]?.unitPrice?.message}</p>
                   )}
                 </div>
                 <div className="flex items-end justify-end">
