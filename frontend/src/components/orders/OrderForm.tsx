@@ -4,7 +4,7 @@ import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 const orderSchema = z.object({
-  customerId: z.string().uuid('Selecione um cliente válido'),
+  customerId: z.string().min(1, 'Selecione um cliente válido'),
   deliveryDate: z.string().optional(),
   status: z.string().optional(),
   items: z
