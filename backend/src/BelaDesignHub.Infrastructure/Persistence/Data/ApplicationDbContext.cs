@@ -13,6 +13,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductPart> ProductParts => Set<ProductPart>();
     public DbSet<ProductionSchedule> ProductionSchedules => Set<ProductionSchedule>();
     public DbSet<ProductionSchedulePart> ProductionScheduleParts => Set<ProductionSchedulePart>();
+    public DbSet<ServiceOrder> ServiceOrders => Set<ServiceOrder>();
+    public DbSet<ServiceOrderItem> ServiceOrderItems => Set<ServiceOrderItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -145,6 +147,50 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                      .WithMany(ps => ps.Parts)
                      .HasForeignKey(psp => psp.ProductionScheduleId)
                      .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ServiceOrder>(builder =>
+        {
+            builder.ToTable("service_orders");
+            builder.HasKey(so => so.Id);
+            builder.Property(so => so.ScheduledDate)
+                   .HasColumnType("date")
+                   .IsRequired();
+            builder.Property(so => so.Status)
+                   .HasConversion<int>();
+            builder.Property(so => so.Responsible)
+                   .HasMaxLength(150);
+            builder.Property(so => so.Notes)
+                   .HasMaxLength(1000);
+            builder.Property(so => so.CreatedAt)
+                   .IsRequired();
+            builder.HasOne(so => so.Order)
+                   .WithMany()
+                   .HasForeignKey(so => so.OrderId)
+                   .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(so => so.Customer)
+                   .WithMany()
+                   .HasForeignKey(so => so.CustomerId)
+                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ServiceOrderItem>(builder =>
+        {
+            builder.ToTable("service_order_items");
+            builder.HasKey(soi => soi.Id);
+            builder.Property(soi => soi.Description)
+                   .IsRequired()
+                   .HasMaxLength(250);
+            builder.Property(soi => soi.Quantity)
+                   .IsRequired();
+            builder.HasOne(soi => soi.ServiceOrder)
+                   .WithMany(so => so.Items)
+                   .HasForeignKey(soi => soi.ServiceOrderId)
+                   .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(soi => soi.OrderItem)
+                   .WithMany()
+                   .HasForeignKey(soi => soi.OrderItemId)
+                   .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
