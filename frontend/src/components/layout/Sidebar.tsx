@@ -4,6 +4,7 @@ const navItems = [
   { label: 'Financeiro', to: '/finance' },
   { label: 'Clientes', to: '/customers' },
   { label: 'Pedidos', to: '/orders' },
+  { label: 'Ordens de serviço', to: '/service-orders' },
   { label: 'Despesas', to: '/expenses' },
   { label: 'Produção', to: '/production' },
 ]

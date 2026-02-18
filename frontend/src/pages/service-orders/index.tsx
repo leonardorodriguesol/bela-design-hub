@@ -1,0 +1,525 @@
+import { isAxiosError } from 'axios'
+import { useEffect, useMemo, useState } from 'react'
+
+import { ServiceOrderForm, type ServiceOrderFormValues } from '../../components/serviceOrders/ServiceOrderForm'
+import { useCustomers } from '../../hooks/useCustomers'
+import { useOrders } from '../../hooks/useOrders'
+import { useServiceOrderMutations } from '../../hooks/useServiceOrderMutations'
+import { useServiceOrders } from '../../hooks/useServiceOrders'
+import type { Order } from '../../types/order'
+import type { ServiceOrder } from '../../types/serviceOrder'
+
+type PrintableItem = {
+  id?: string
+  description: string
+  quantity: number
+  unitPrice: number
+}
+
+const getApiErrorMessage = (err: unknown, fallback: string) => {
+  if (isAxiosError(err)) {
+    const data = err.response?.data
+    if (typeof data === 'string') return data
+    if (data && typeof data === 'object') {
+      if ('message' in data && typeof (data as { message?: string }).message === 'string') {
+        return (data as { message: string }).message
+      }
+      if ('errors' in data && data.errors && typeof data.errors === 'object') {
+        const errorsObj = data.errors as Record<string, string | string[]>
+        const firstKey = Object.keys(errorsObj)[0]
+        if (firstKey) {
+          const value = errorsObj[firstKey]
+          if (Array.isArray(value)) return value[0]
+          if (typeof value === 'string') return value
+        }
+      }
+      if ('title' in data && typeof (data as { title?: string }).title === 'string') {
+        return (data as { title: string }).title
+      }
+    }
+  }
+  return fallback
+}
+
+const formatCurrency = (value: number) =>
+  value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
+
+const getPrintableItems = (serviceOrder: ServiceOrder | null, orderMap: Map<string, Order>): PrintableItem[] => {
+  if (!serviceOrder) return []
+  const resolvedOrderItems = serviceOrder.order?.items ?? orderMap.get(serviceOrder.orderId)?.items
+  if (resolvedOrderItems?.length) {
+    return resolvedOrderItems.map(({ id, description, quantity, unitPrice }) => ({
+      id,
+      description,
+      quantity,
+      unitPrice,
+    }))
+  }
+
+  return (
+    serviceOrder.items?.map((item) => ({
+      id: item.id,
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: 0,
+    })) ?? []
+  )
+}
+
+export const ServiceOrders = () => {
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null)
+  const [orderForPrint, setOrderForPrint] = useState<ServiceOrder | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [feedbackType, setFeedbackType] = useState<'success' | 'error'>('success')
+
+  const { data: customers } = useCustomers()
+  const { data: ordersData } = useOrders()
+  const { data: serviceOrders, isLoading, error } = useServiceOrders()
+  const { create: createServiceOrder } = useServiceOrderMutations()
+
+  const customerMap = useMemo(() => {
+    if (!customers) return {}
+    return customers.reduce<Record<string, string>>((acc, customer) => {
+      acc[customer.id] = customer.name
+      return acc
+    }, {})
+  }, [customers])
+
+  const orderMap = useMemo(() => {
+    if (!ordersData) return new Map<string, Order>()
+    return new Map(ordersData.map((order) => [order.id, order]))
+  }, [ordersData])
+
+  useEffect(() => {
+    const handleAfterPrint = () => setOrderForPrint(null)
+    window.addEventListener('afterprint', handleAfterPrint)
+    return () => window.removeEventListener('afterprint', handleAfterPrint)
+  }, [])
+
+  const ordersForForm = useMemo(() => {
+    if (!ordersData) return []
+    return ordersData.map((order) => ({
+      id: order.id,
+      code: order.code,
+      customerId: order.customerId,
+      customerName: customerMap[order.customerId],
+    }))
+  }, [customerMap, ordersData])
+
+  const printableItems = useMemo(() => getPrintableItems(orderForPrint, orderMap), [orderForPrint, orderMap])
+  const printableTotal = useMemo(
+    () => printableItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+    [printableItems],
+  )
+
+  const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
+    setFeedback(message)
+    setFeedbackType(type)
+    setTimeout(() => setFeedback(null), 4000)
+  }
+
+  const handlePrint = (serviceOrder: ServiceOrder) => {
+    setOrderForPrint(serviceOrder)
+    setTimeout(() => window.print(), 40)
+  }
+
+  const handleCreate = async (values: ServiceOrderFormValues) => {
+    setCreateError(null)
+    const order = values.orderId ? orderMap.get(values.orderId) : null
+
+    if (!order) {
+      const message = 'Pedido não encontrado para gerar a OS.'
+      setCreateError(message)
+      showMessage(message, 'error')
+      return
+    }
+
+    const payload = {
+      orderId: order.id,
+      customerId: values.customerId,
+      scheduledDate: values.scheduledDate,
+      responsible: values.responsible?.trim() ? values.responsible.trim() : undefined,
+      notes: values.notes?.trim() ? values.notes.trim() : undefined,
+      items:
+        values.extraItems && values.extraItems.length > 0
+          ? values.extraItems.map((item) => ({
+              orderItemId: null,
+              description: item.description.trim(),
+              quantity: item.quantity,
+            }))
+          : undefined,
+    }
+
+    try {
+      await createServiceOrder.mutateAsync(payload)
+      showMessage('Ordem de serviço criada com sucesso!')
+      setIsCreateOpen(false)
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Erro ao criar ordem de serviço.')
+      setCreateError(message)
+      showMessage(message, 'error')
+    }
+  }
+
+  const displayedOrders = serviceOrders ?? []
+  const showEmptyState = !isLoading && !error && displayedOrders.length === 0
+
+  return (
+    <>
+      <section className="space-y-6 screen-only">
+        <header className="space-y-2 text-brand-700">
+          <p className="text-sm uppercase tracking-[0.3em] text-brand-400">Ordens de serviço</p>
+          <h2 className="text-2xl font-bold text-brand-700">Acompanhe entregas e instalações planejadas</h2>
+          <p className="text-sm text-brand-500">Visualize todas as ordens de serviço por status e planeje o dia da equipe.</p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-5 py-2 text-sm font-bold text-white shadow hover:bg-brand-400"
+              onClick={() => setIsCreateOpen(true)}
+              disabled={!ordersForForm.length}
+            >
+              <span aria-hidden>＋</span>
+              Gerar ordem
+            </button>
+          </div>
+          {!ordersForForm.length && <p className="text-xs text-brand-400">Cadastre pedidos para gerar ordens de serviço.</p>}
+        </header>
+
+        {feedback && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              feedbackType === 'success'
+                ? 'border-brand-200 bg-brand-50 text-brand-700'
+                : 'border-red-200 bg-red-50 text-red-600'
+            }`}
+          >
+            {feedback}
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-brand-100 bg-white/95 shadow-sm">
+          <table className="w-full min-w-[700px] border-collapse text-left text-sm text-brand-700">
+            <thead>
+              <tr className="border-b border-brand-100 text-xs uppercase tracking-wide text-brand-400">
+                <th className="px-6 py-4">Pedido</th>
+                <th className="px-6 py-4">Cliente</th>
+                <th className="px-6 py-4">Data</th>
+                <th className="px-6 py-4">Responsável</th>
+                <th className="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && (
+                <tr>
+                  <td className="px-6 py-6 text-brand-500" colSpan={5}>
+                    Carregando ordens de serviço...
+                  </td>
+                </tr>
+              )}
+
+              {error && (
+                <tr>
+                  <td className="px-6 py-6 text-brand-600" colSpan={5}>
+                    Não foi possível carregar as ordens de serviço.
+                  </td>
+                </tr>
+              )}
+
+              {showEmptyState && (
+                <tr>
+                  <td className="px-6 py-6 text-brand-500" colSpan={5}>
+                    Nenhuma ordem de serviço encontrada.
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && !error &&
+                displayedOrders.map((serviceOrder) => {
+                  const scheduledDate = new Date(serviceOrder.scheduledDate)
+                  return (
+                    <tr key={serviceOrder.id} className="border-t border-brand-100">
+                      <td className="px-6 py-4 text-sm font-semibold text-brand-800">{serviceOrder.order?.code ?? '—'}</td>
+                      <td className="px-6 py-4 text-brand-600">{customerMap[serviceOrder.customerId] ?? '—'}</td>
+                      <td className="px-6 py-4 text-brand-600">{scheduledDate.toLocaleDateString('pt-BR')}</td>
+                      <td className="px-6 py-4 text-brand-600">{serviceOrder.responsible ?? 'Não informado'}</td>
+                      <td className="px-6 py-4 text-right text-sm">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-brand-100 px-3 py-1 text-sm font-semibold text-brand-500 hover:bg-brand-50"
+                            onClick={() => setSelectedOrder(serviceOrder)}
+                          >
+                            Ver detalhes
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-brand-100 px-3 py-1 text-sm font-semibold text-brand-500 hover:bg-brand-50"
+                            onClick={() => handlePrint(serviceOrder)}
+                          >
+                            Imprimir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+            </tbody>
+          </table>
+        </div>
+
+        {isCreateOpen && customers && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+            <div className="w-full max-w-2xl rounded-3xl border border-brand-100 bg-white p-6 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Nova OS</p>
+                  <h3 className="text-xl font-semibold text-brand-700">Gerar ordem de serviço</h3>
+                </div>
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-brand-500 hover:text-brand-700"
+                  onClick={() => setIsCreateOpen(false)}
+                >
+                  Fechar
+                </button>
+              </div>
+
+              {createError && (
+                <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600">
+                  {createError}
+                </div>
+              )}
+
+              <ServiceOrderForm
+                customers={customers.map((customer) => ({ id: customer.id, name: customer.name }))}
+                orders={ordersForForm}
+                onSubmit={handleCreate}
+                isSubmitting={createServiceOrder.isPending}
+              />
+            </div>
+          </div>
+        )}
+      </section>
+
+      {selectedOrder && (
+        <div className="screen-only fixed inset-0 z-40 flex items-stretch justify-end bg-black/20">
+          <div className="w-full max-w-md space-y-6 overflow-y-auto border-l border-brand-100 bg-white/95 p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-brand-400">Detalhes</p>
+                <h3 className="text-2xl font-semibold text-brand-700">{selectedOrder.order?.code ?? 'Ordem'}</h3>
+                <p className="text-sm text-brand-500">{customerMap[selectedOrder.customerId] ?? '—'}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-full border border-brand-100 px-4 py-1 text-sm font-semibold text-brand-500 hover:bg-brand-50"
+                  onClick={() => handlePrint(selectedOrder)}
+                >
+                  Imprimir 2 vias
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-brand-100 px-4 py-1 text-sm font-semibold text-brand-500 hover:bg-brand-50"
+                  onClick={() => setSelectedOrder(null)}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 rounded-2xl border border-brand-100 bg-white p-4 shadow-sm text-sm">
+              <div>
+                <p className="text-brand-400">Data programada</p>
+                <p className="text-brand-700">{new Date(selectedOrder.scheduledDate).toLocaleDateString('pt-BR')}</p>
+              </div>
+              <div>
+                <p className="text-brand-400">Responsável</p>
+                <p className="text-brand-700">{selectedOrder.responsible ?? 'Não informado'}</p>
+              </div>
+            </div>
+
+            {selectedOrder.notes && (
+              <div className="rounded-2xl border border-brand-100 bg-white p-4 text-sm text-brand-600 shadow-sm">
+                <p className="text-sm font-semibold text-brand-700">Observações</p>
+                <p className="mt-2 whitespace-pre-line">{selectedOrder.notes}</p>
+              </div>
+            )}
+
+            <div className="space-y-3 rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h4 className="text-base font-semibold text-brand-700">Itens vinculados</h4>
+                <span className="text-sm text-brand-400">{selectedOrder.items.length} itens</span>
+              </div>
+              <div className="space-y-3">
+                {selectedOrder.items.map((item) => (
+                  <div key={item.id ?? item.description} className="rounded-xl border border-brand-50 bg-brand-50/60 p-3">
+                    <p className="text-sm font-semibold text-brand-700">{item.description}</p>
+                    <p className="mt-1 text-sm text-brand-500">Qtd: {item.quantity}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button className="flex-1" type="button" onClick={() => setSelectedOrder(null)} aria-label="Fechar detalhes" />
+        </div>
+      )}
+
+      {orderForPrint && (
+        <section className="print-view">
+          <style>{`
+            @media screen {
+              .print-view {
+                display: none;
+              }
+            }
+            @media print {
+              body, html {
+                background: #fff !important;
+              }
+              body * {
+                visibility: hidden;
+              }
+              .print-view,
+              .print-view * {
+                visibility: visible;
+              }
+              .print-view {
+                position: fixed;
+                inset: 0;
+                display: block;
+              }
+              .screen-only {
+                display: none !important;
+              }
+            }
+            .print-view {
+              color: #000;
+              font-family: 'Segoe UI', sans-serif;
+              padding: 24px;
+              background: #fff;
+              width: 100%;
+              height: 100%;
+            }
+            .print-wrapper {
+              display: grid;
+              grid-template-rows: repeat(2, 1fr);
+              gap: 16px;
+              height: 100%;
+            }
+            .print-copy {
+              border: 2px solid #000;
+              padding: 16px;
+              min-height: calc(50vh - 24px);
+              display: flex;
+              flex-direction: column;
+            }
+            .print-copy header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              text-transform: uppercase;
+              font-size: 0.8rem;
+              letter-spacing: 0.3em;
+            }
+            .print-copy h2 {
+              font-size: 1.6rem;
+              margin: 12px 0 4px;
+            }
+            .print-details {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 8px;
+              margin-bottom: 12px;
+              font-size: 0.95rem;
+            }
+            .print-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 12px;
+              font-size: 0.9rem;
+            }
+            .print-table th,
+            .print-table td {
+              border: 1px solid #000;
+              padding: 6px;
+              text-align: left;
+            }
+            .print-signatures {
+              display: flex;
+              justify-content: space-between;
+              gap: 16px;
+              margin-top: 20px;
+              font-size: 0.9rem;
+            }
+            .print-signatures div {
+              width: 48%;
+            }
+            .print-signatures p {
+              margin: 8px 0 0;
+              text-align: center;
+            }
+          `}</style>
+          <div className="print-wrapper">
+            {['Via do cliente', 'Via do entregador'].map((label) => (
+              <article key={label} className="print-copy">
+                <header>
+                  <span>Bela Design Hub</span>
+                  <span>{label}</span>
+                </header>
+                <h2>Ordem de serviço — {orderForPrint.order?.code ?? 'Nº'}</h2>
+                <p>Cliente: {customerMap[orderForPrint.customerId] ?? '—'}</p>
+                <div className="print-details">
+                  <span>Data prevista: {new Date(orderForPrint.scheduledDate).toLocaleDateString('pt-BR')}</span>
+                  <span>Responsável: {orderForPrint.responsible ?? 'Não informado'}</span>
+                  <span>Gerado em: {new Date(orderForPrint.createdAt).toLocaleDateString('pt-BR')}</span>
+                  <span>Total: {formatCurrency(printableTotal)}</span>
+                </div>
+                {orderForPrint.notes && <p>Observações: {orderForPrint.notes}</p>}
+                <table className="print-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '45%' }}>Item</th>
+                      <th style={{ width: '15%' }}>Qtd</th>
+                      <th style={{ width: '20%' }}>Valor unit.</th>
+                      <th style={{ width: '20%' }}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {printableItems.length ? (
+                      printableItems.map((item) => (
+                        <tr key={item.id ?? item.description}>
+                          <td>{item.description}</td>
+                          <td>{item.quantity}</td>
+                          <td>{formatCurrency(item.unitPrice)}</td>
+                          <td>{formatCurrency(item.unitPrice * item.quantity)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4}>Nenhum item encontrado.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                <div className="print-signatures">
+                  <div>
+                    <p>Assinatura do cliente</p>
+                  </div>
+                  <div>
+                    <p>Assinatura do entregador</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  )
+}
