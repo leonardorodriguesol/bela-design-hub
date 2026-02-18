@@ -7,7 +7,6 @@ import type { CreateProductInput } from '../../types/product'
 
 const partSchema = z.object({
   name: z.string().min(2, 'Informe o nome da peça'),
-  measurements: z.string().max(200, 'Até 200 caracteres').optional(),
   quantity: z.number().min(1, 'Quantidade mínima é 1'),
 })
 
@@ -31,10 +30,9 @@ const mapToFormValues = (values?: CreateProductInput): ProductFormValues => ({
   parts: values?.parts?.length
     ? values.parts.map((part) => ({
         name: part.name,
-        measurements: part.measurements ?? '',
         quantity: part.quantity,
       }))
-    : [{ name: '', measurements: '', quantity: 1 }],
+    : [{ name: '', quantity: 1 }],
 })
 
 export const ProductForm = ({ defaultValues, onSubmit, isSubmitting }: ProductFormProps) => {
@@ -61,7 +59,6 @@ export const ProductForm = ({ defaultValues, onSubmit, isSubmitting }: ProductFo
       description: values.description?.trim() ? values.description.trim() : undefined,
       parts: values.parts.map((part) => ({
         name: part.name.trim(),
-        measurements: part.measurements?.trim() ? part.measurements.trim() : undefined,
         quantity: part.quantity,
       })),
     }
@@ -107,14 +104,14 @@ export const ProductForm = ({ defaultValues, onSubmit, isSubmitting }: ProductFo
           <button
             type="button"
             className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
-            onClick={() => append({ name: '', measurements: '', quantity: 1 })}
+            onClick={() => append({ name: '', quantity: 1 })}
           >
             + Adicionar peça
           </button>
         </div>
 
         {fields.map((field, index) => (
-          <div key={field.id} className="grid gap-3 rounded-2xl border border-brand-100 bg-brand-50/40 p-4 md:grid-cols-[1.1fr_1fr_110px]">
+          <div key={field.id} className="grid gap-3 rounded-2xl border border-brand-100 bg-brand-50/40 p-4 md:grid-cols-[1.4fr_120px_auto]">
             <label className="text-sm text-brand-600">
               <span className="mb-1 block font-semibold text-brand-700">Nome</span>
               <input
@@ -124,18 +121,6 @@ export const ProductForm = ({ defaultValues, onSubmit, isSubmitting }: ProductFo
               />
               {errors.parts?.[index]?.name && (
                 <p className="text-xs text-red-600">{errors.parts[index]?.name?.message}</p>
-              )}
-            </label>
-
-            <label className="text-sm text-brand-600">
-              <span className="mb-1 block font-semibold text-brand-700">Medidas</span>
-              <input
-                className="w-full rounded-xl border border-brand-100 px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
-                placeholder="Ex.: 120x60"
-                {...register(`parts.${index}.measurements`)}
-              />
-              {errors.parts?.[index]?.measurements && (
-                <p className="text-xs text-red-600">{errors.parts[index]?.measurements?.message}</p>
               )}
             </label>
 

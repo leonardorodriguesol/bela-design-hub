@@ -80,8 +80,23 @@ export const Production = () => {
       .screen-only {
         display: none !important;
       }
+      body * {
+        visibility: hidden;
+      }
+      .print-only, .print-only * {
+        visibility: visible;
+      }
       .print-only {
         display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 32px;
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 12pt;
+        line-height: 1.4;
       }
       .print-only table {
         width: 100%;
@@ -116,7 +131,7 @@ export const Production = () => {
   }
 
   const { data: products } = useProducts()
-  const { create: createProduct, update: updateProduct } = useProductMutations()
+  const { create: createProduct, update: updateProduct, remove: removeProduct } = useProductMutations()
 
   const scheduleFilters = useMemo(() => ({ scheduledDate: selectedDate }), [selectedDate])
 
@@ -178,61 +193,96 @@ export const Production = () => {
     })
   }
 
+  const handleEditProduct = (product: Product) => {
+    setCatalogOpen(false)
+    setEditingProduct(product)
+    setProductModalOpen(true)
+    setFormError(null)
+  }
+
+  const handleDeleteProduct = (product: Product) => {
+    if (!window.confirm(`Remover o produto "${product.name}"?`)) return
+    removeProduct.mutate(product.id, {
+      onSuccess: () => showMessage('Produto removido!'),
+      onError: () => showMessage('Erro ao remover produto.', 'error'),
+    })
+  }
+
+  const consolidatedParts = useMemo(() => {
+    const summary = new Map<string, { name: string; quantity: number }>()
+    daySchedules.forEach((schedule) => {
+      schedule.parts.forEach((part) => {
+        const key = part.name
+        const item = summary.get(key)
+        if (item) {
+          item.quantity += part.quantity
+        } else {
+          summary.set(key, {
+            name: part.name,
+            quantity: part.quantity,
+          })
+        }
+      })
+    })
+    return Array.from(summary.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [daySchedules])
+
   return (
     <>
       <section className="space-y-6 screen-only">
-        <div className="flex flex-col items-end gap-1 text-xs uppercase tracking-[0.4em] text-brand-400">
-          <span>Histórico de produção</span>
-          <input
-            type="date"
-            className="rounded-2xl border border-brand-100 px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
-            value={selectedDate}
-            onChange={(event) => setSelectedDate(event.target.value || getLocalDateString())}
-          />
-      </div>
-
-      <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
-        <div className="flex flex-col gap-4 text-brand-800 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-2 md:gap-3">
-            <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-3">
-              <h2 className="text-3xl font-semibold">Produção diária</h2>
-              <span className="text-base font-medium text-brand-500">{formatDate(selectedDate)}</span>
+        <header className="rounded-3xl border border-brand-100 bg-white/95 p-6 text-brand-700 shadow-sm">
+          <div className="flex flex-col gap-4 text-brand-800 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-2 md:gap-3">
+              <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-3">
+                <h2 className="text-3xl font-semibold">Produção diária</h2>
+                <span className="text-base font-medium text-brand-500">{formatDate(selectedDate)}</span>
+              </div>
+              <p className="text-sm text-brand-500">Planejamento do dia com catálogo e peças vinculadas a cada produto.</p>
             </div>
-            <p className="text-sm text-brand-500">Planejamento do dia com catálogo e peças vinculadas a cada produto.</p>
-          </div>
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3 md:justify-end">
-            <button
-              type="button"
-              className="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow transition hover:bg-brand-400"
-              onClick={() => {
-                setEditingProduct(null)
-                setProductModalOpen(true)
-                setFormError(null)
-              }}
-            >
-              Cadastrar produto
-            </button>
-            <button
-              type="button"
-              className="rounded-2xl border border-brand-200 px-4 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
-              onClick={() => setCatalogOpen(true)}
-            >
-              Ver catálogo
-            </button>
+            <div className="flex flex-col gap-3 md:items-end">
+              <label className="flex flex-col text-xs uppercase tracking-[0.3em] text-brand-400 md:items-end">
+                <span>Histórico de produção</span>
+                <input
+                  type="date"
+                  className="mt-1 rounded-2xl border border-brand-100 px-3 py-2 text-sm text-brand-700 focus:border-brand-500 focus:outline-none"
+                  value={selectedDate}
+                  onChange={(event) => setSelectedDate(event.target.value || getLocalDateString())}
+                />
+              </label>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3 md:justify-end">
+                <button
+                  type="button"
+                  className="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow transition hover:bg-brand-400"
+                  onClick={() => {
+                    setEditingProduct(null)
+                    setProductModalOpen(true)
+                    setFormError(null)
+                  }}
+                >
+                  Cadastrar produto
+                </button>
+                <button
+                  type="button"
+                  className="rounded-2xl border border-brand-200 px-4 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
+                  onClick={() => setCatalogOpen(true)}
+                >
+                  Ver catálogo
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {feedback && (
-        <div
-          className={`rounded-2xl border px-4 py-3 text-sm ${
-            feedbackType === 'success' ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-red-200 bg-red-50 text-red-600'
-          }`}
-        >
-          {feedback}
-        </div>
-      )}
+        {feedback && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              feedbackType === 'success' ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-red-200 bg-red-50 text-red-600'
+            }`}
+          >
+            {feedback}
+          </div>
+        )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <section className="rounded-3xl border border-brand-100 bg-white/95 p-5 text-brand-700 shadow-sm">
@@ -371,7 +421,6 @@ export const Production = () => {
                           <thead>
                             <tr className="text-xs uppercase tracking-wide text-brand-400">
                               <th className="pb-1">Peça</th>
-                              <th className="pb-1">Medidas</th>
                               <th className="pb-1 text-right">Qtd.</th>
                             </tr>
                           </thead>
@@ -379,7 +428,6 @@ export const Production = () => {
                             {schedule.parts.map((part) => (
                               <tr key={`${schedule.id}-${part.name}`}>
                                 <td className="py-1 text-brand-600">{part.name}</td>
-                                <td className="py-1 text-brand-500">{part.measurements ?? '—'}</td>
                                 <td className="py-1 text-right text-brand-800">{part.quantity}</td>
                               </tr>
                             ))}
@@ -472,19 +520,40 @@ export const Production = () => {
                     const expanded = expandedCatalogId === product.id
                     return (
                       <li key={product.id} className="p-4">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="text-brand-700">
                             <h4 className="text-lg font-semibold text-brand-800">{product.name}</h4>
                             {product.description && <p className="text-sm text-brand-500">{product.description}</p>}
                             <p className="text-xs text-brand-400">{product.parts.length} peça(s)</p>
                           </div>
-                          <button
-                            type="button"
-                            className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
-                            onClick={() => setExpandedCatalogId(expanded ? null : product.id)}
-                          >
-                            {expanded ? 'Ocultar peças' : 'Ver peças'}
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                              onClick={() => setExpandedCatalogId(expanded ? null : product.id)}
+                            >
+                              {expanded ? 'Ocultar peças' : 'Ver peças'}
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-full border border-brand-200 px-2 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                              onClick={() => handleEditProduct(product)}
+                              aria-label={`Editar ${product.name}`}
+                              title="Editar produto"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-full border border-red-200 px-2 py-1 text-xs font-semibold text-red-500 transition hover:bg-red-50"
+                              onClick={() => handleDeleteProduct(product)}
+                              disabled={removeProduct.isPending}
+                              aria-label={`Remover ${product.name}`}
+                              title="Remover produto"
+                            >
+                              🗑
+                            </button>
+                          </div>
                         </div>
 
                         {expanded && (
@@ -494,7 +563,6 @@ export const Production = () => {
                                 <thead>
                                   <tr className="text-xs uppercase tracking-wide text-brand-400">
                                     <th className="pb-1">Peça</th>
-                                    <th className="pb-1">Medidas</th>
                                     <th className="pb-1 text-right">Qtd.</th>
                                   </tr>
                                 </thead>
@@ -502,7 +570,6 @@ export const Production = () => {
                                   {product.parts.map((part) => (
                                     <tr key={`${product.id}-${part.name}`}>
                                       <td className="py-1 text-brand-600">{part.name}</td>
-                                      <td className="py-1 text-brand-500">{part.measurements ?? 'Sem medidas'}</td>
                                       <td className="py-1 text-right text-brand-800">{part.quantity}</td>
                                     </tr>
                                   ))}
@@ -542,6 +609,16 @@ export const Production = () => {
           .print-only header {
             margin-bottom: 16px;
           }
+          .print-section {
+            border-top: 2px solid #000;
+            padding-top: 16px;
+            margin-top: 24px;
+          }
+          .print-section:first-of-type {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+          }
           .print-only table {
             width: 100%;
             border-collapse: collapse;
@@ -563,34 +640,61 @@ export const Production = () => {
           <p style={{ margin: '4px 0 12px' }}>Resumo das peças necessárias para o dia.</p>
         </header>
         {daySchedules.length > 0 ? (
-          daySchedules.map((schedule) => (
-            <div key={schedule.id} style={{ marginBottom: '24px' }}>
-              <h3 style={{ margin: '0 0 4px' }}>{schedule.product?.name ?? 'Produto'}</h3>
-              <p style={{ margin: '0 0 8px' }}>Quantidade planejada: {schedule.quantity}</p>
-              {schedule.parts.length > 0 ? (
+          <>
+            <div className="print-section">
+              <h3 style={{ margin: '0 0 8px', fontWeight: 700 }}>Produtos planeados</h3>
+              {daySchedules.map((schedule) => (
+                <div key={schedule.id} style={{ marginBottom: '24px' }}>
+                  <h4 style={{ margin: '0 0 4px', fontWeight: 700 }}>{schedule.product?.name ?? 'Produto'}</h4>
+                  <p style={{ margin: '0 0 8px' }}>Quantidade planejada: {schedule.quantity}</p>
+                  {schedule.parts.length > 0 ? (
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Peça</th>
+                          <th>Quantidade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {schedule.parts.map((part) => (
+                          <tr key={`${schedule.id}-${part.name}`}>
+                            <td>{part.name}</td>
+                            <td>{part.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p>Sem peças cadastradas para este produto.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="print-section">
+              <h3 style={{ margin: '0 0 8px', fontWeight: 700 }}>Lista total de peças</h3>
+              {consolidatedParts.length > 0 ? (
                 <table>
                   <thead>
                     <tr>
                       <th>Peça</th>
-                      <th>Medidas</th>
-                      <th>Quantidade</th>
+                      <th>Quantidade total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {schedule.parts.map((part) => (
-                      <tr key={`${schedule.id}-${part.name}`}>
+                    {consolidatedParts.map((part) => (
+                      <tr key={part.name}>
                         <td>{part.name}</td>
-                        <td>{part.measurements ?? '—'}</td>
                         <td>{part.quantity}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <p>Sem peças cadastradas para este produto.</p>
+                <p>Não há peças cadastradas.</p>
               )}
             </div>
-          ))
+          </>
         ) : (
           <p>Nenhum item planejado para {formatDate(selectedDate)}.</p>
         )}

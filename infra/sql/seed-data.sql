@@ -92,35 +92,39 @@ VALUES
   ('22222222-bbbb-cccc-dddd-222222222222', 'Armário Modular Boreal', 'Armário multiuso com módulos independentes e iluminação interna.', NOW(), NULL),
   ('33333333-cccc-dddd-eeee-333333333333', 'Balcão Gourmet Atlântida', 'Balcão central para cozinhas abertas com tampo em quartzo branco.', NOW(), NULL);
 
-INSERT INTO product_parts ("Id", "ProductId", "Name", "Quantity")
+INSERT INTO product_parts ("Id", "ProductId", "Name", "Measurements", "Quantity")
 VALUES
-  ('aaaa1111-bbbb-cccc-dddd-000000000001', '11111111-aaaa-bbbb-cccc-111111111111', 'Tampo principal com nicho para espelho', 1),
-  ('aaaa1111-bbbb-cccc-dddd-000000000002', '11111111-aaaa-bbbb-cccc-111111111111', 'Moldura com LED embutido', 1),
-  ('aaaa1111-bbbb-cccc-dddd-000000000003', '11111111-aaaa-bbbb-cccc-111111111111', 'Coluna lateral com gavetas', 2),
-  ('bbbb2222-cccc-dddd-eeee-000000000004', '22222222-bbbb-cccc-dddd-222222222222', 'Módulo vertical 60cm', 2),
-  ('bbbb2222-cccc-dddd-eeee-000000000005', '22222222-bbbb-cccc-dddd-222222222222', 'Módulo gaveteiro 90cm', 1),
-  ('bbbb2222-cccc-dddd-eeee-000000000006', '22222222-bbbb-cccc-dddd-222222222222', 'Porta ripada com dobradiça oculta', 2),
-  ('cccc3333-dddd-eeee-ffff-000000000007', '33333333-cccc-dddd-eeee-333333333333', 'Estrutura base com niveladores', 1),
-  ('cccc3333-dddd-eeee-ffff-000000000008', '33333333-cccc-dddd-eeee-333333333333', 'Tampo em quartzo branco 2,4m', 1),
-  ('cccc3333-dddd-eeee-ffff-000000000009', '33333333-cccc-dddd-eeee-333333333333', 'Painel frontal frisado', 2);
+  ('aaaa1111-bbbb-cccc-dddd-000000000001', '11111111-aaaa-bbbb-cccc-111111111111', 'Tampo principal com nicho para espelho', '120 x 55 cm', 1),
+  ('aaaa1111-bbbb-cccc-dddd-000000000002', '11111111-aaaa-bbbb-cccc-111111111111', 'Moldura com LED embutido', '120 x 55 cm', 1),
+  ('aaaa1111-bbbb-cccc-dddd-000000000003', '11111111-aaaa-bbbb-cccc-111111111111', 'Coluna lateral com gavetas', '35 x 45 cm', 2),
+  ('bbbb2222-cccc-dddd-eeee-000000000004', '22222222-bbbb-cccc-dddd-222222222222', 'Módulo vertical 60cm', '60 x 240 cm', 2),
+  ('bbbb2222-cccc-dddd-eeee-000000000005', '22222222-bbbb-cccc-dddd-222222222222', 'Módulo gaveteiro 90cm', '90 x 85 cm', 1),
+  ('bbbb2222-cccc-dddd-eeee-000000000006', '22222222-bbbb-cccc-dddd-222222222222', 'Porta ripada com dobradiça oculta', '45 x 220 cm', 2),
+  ('cccc3333-dddd-eeee-ffff-000000000007', '33333333-cccc-dddd-eeee-333333333333', 'Estrutura base com niveladores', '240 x 70 cm', 1),
+  ('cccc3333-dddd-eeee-ffff-000000000008', '33333333-cccc-dddd-eeee-333333333333', 'Tampo em quartzo branco 2,4m', '240 x 80 cm', 1),
+  ('cccc3333-dddd-eeee-ffff-000000000009', '33333333-cccc-dddd-eeee-333333333333', 'Painel frontal frisado', '240 x 45 cm', 2);
 
 -- Planejamento de produção
 INSERT INTO production_schedules ("Id", "ProductId", "ScheduledDate", "Quantity", "Status", "CreatedAt", "UpdatedAt")
 VALUES
-  ('44444444-aaaa-bbbb-cccc-444444444444', '11111111-aaaa-bbbb-cccc-111111111111', CURRENT_DATE, 4, 0, NOW(), NULL),
-  ('55555555-bbbb-cccc-dddd-555555555555', '22222222-bbbb-cccc-dddd-222222222222', CURRENT_DATE + INTERVAL '1 day', 2, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
+  ('44444444-aaaa-bbbb-cccc-444444444444', '11111111-aaaa-bbbb-cccc-111111111111', CURRENT_DATE, 5, 0, NOW(), NULL),
+  ('55555555-bbbb-cccc-dddd-555555555555', '22222222-bbbb-cccc-dddd-222222222222', CURRENT_DATE, 3, 1, NOW() - INTERVAL '1 day', NOW() - INTERVAL '30 minutes'),
+  ('77777777-dddd-eeee-ffff-777777777777', '11111111-aaaa-bbbb-cccc-111111111111', CURRENT_DATE + INTERVAL '1 day', 2, 0, NOW(), NULL),
   ('66666666-cccc-dddd-eeee-666666666666', '33333333-cccc-dddd-eeee-333333333333', CURRENT_DATE + INTERVAL '2 days', 1, 0, NOW(), NULL);
 
-INSERT INTO production_schedule_parts ("Id", "ProductionScheduleId", "Name", "Quantity")
+INSERT INTO production_schedule_parts ("Id", "ProductionScheduleId", "Name", "Measurements", "Quantity")
 VALUES
-  ('aaaa4444-bbbb-cccc-dddd-000000000001', '44444444-aaaa-bbbb-cccc-444444444444', 'Tampo principal com nicho para espelho', 4),
-  ('aaaa4444-bbbb-cccc-dddd-000000000002', '44444444-aaaa-bbbb-cccc-444444444444', 'Moldura com LED embutido', 4),
-  ('aaaa4444-bbbb-cccc-dddd-000000000003', '44444444-aaaa-bbbb-cccc-444444444444', 'Coluna lateral com gavetas', 8),
-  ('bbbb5555-cccc-dddd-eeee-000000000004', '55555555-bbbb-cccc-dddd-555555555555', 'Módulo vertical 60cm', 4),
-  ('bbbb5555-cccc-dddd-eeee-000000000005', '55555555-bbbb-cccc-dddd-555555555555', 'Módulo gaveteiro 90cm', 2),
-  ('bbbb5555-cccc-dddd-eeee-000000000006', '55555555-bbbb-cccc-dddd-555555555555', 'Porta ripada com dobradiça oculta', 4),
-  ('cccc6666-dddd-eeee-ffff-000000000007', '66666666-cccc-dddd-eeee-666666666666', 'Estrutura base com niveladores', 1),
-  ('cccc6666-dddd-eeee-ffff-000000000008', '66666666-cccc-dddd-eeee-666666666666', 'Tampo em quartzo branco 2,4m', 1),
-  ('cccc6666-dddd-eeee-ffff-000000000009', '66666666-cccc-dddd-eeee-666666666666', 'Painel frontal frisado', 2);
+  ('aaaa4444-bbbb-cccc-dddd-000000000001', '44444444-aaaa-bbbb-cccc-444444444444', 'Tampo principal com nicho para espelho', '120 x 55 cm', 5),
+  ('aaaa4444-bbbb-cccc-dddd-000000000002', '44444444-aaaa-bbbb-cccc-444444444444', 'Moldura com LED embutido', '120 x 55 cm', 5),
+  ('aaaa4444-bbbb-cccc-dddd-000000000003', '44444444-aaaa-bbbb-cccc-444444444444', 'Coluna lateral com gavetas', '35 x 45 cm', 10),
+  ('bbbb5555-cccc-dddd-eeee-000000000004', '55555555-bbbb-cccc-dddd-555555555555', 'Módulo vertical 60cm', '60 x 240 cm', 6),
+  ('bbbb5555-cccc-dddd-eeee-000000000005', '55555555-bbbb-cccc-dddd-555555555555', 'Módulo gaveteiro 90cm', '90 x 85 cm', 3),
+  ('bbbb5555-cccc-dddd-eeee-000000000006', '55555555-bbbb-cccc-dddd-555555555555', 'Porta ripada com dobradiça oculta', '45 x 220 cm', 6),
+  ('dddd7777-cccc-bbbb-aaaa-000000000010', '77777777-dddd-eeee-ffff-777777777777', 'Tampo principal com nicho para espelho', '120 x 55 cm', 2),
+  ('dddd7777-cccc-bbbb-aaaa-000000000011', '77777777-dddd-eeee-ffff-777777777777', 'Moldura com LED embutido', '120 x 55 cm', 2),
+  ('dddd7777-cccc-bbbb-aaaa-000000000012', '77777777-dddd-eeee-ffff-777777777777', 'Coluna lateral com gavetas', '35 x 45 cm', 4),
+  ('cccc6666-dddd-eeee-ffff-000000000007', '66666666-cccc-dddd-eeee-666666666666', 'Estrutura base com niveladores', '240 x 70 cm', 1),
+  ('cccc6666-dddd-eeee-ffff-000000000008', '66666666-cccc-dddd-eeee-666666666666', 'Tampo em quartzo branco 2,4m', '240 x 80 cm', 1),
+  ('cccc6666-dddd-eeee-ffff-000000000009', '66666666-cccc-dddd-eeee-666666666666', 'Painel frontal frisado', '240 x 45 cm', 2);
 
 COMMIT;
