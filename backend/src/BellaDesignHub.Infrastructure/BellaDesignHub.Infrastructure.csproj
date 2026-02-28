@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BellaDesignHub.Application\BellaDesignHub.Application.csproj" />
     <ProjectReference Include="..\BellaDesignHub.Domain\BellaDesignHub.Domain.csproj" />
   </ItemGroup>
 
