@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useEffect, useMemo, useState } from 'react'
 
 import { ProductForm } from '../../components/production/ProductForm'
@@ -7,6 +6,7 @@ import { useProductMutations } from '../../hooks/useProductMutations'
 import { useProducts } from '../../hooks/useProducts'
 import { useProductionScheduleMutations } from '../../hooks/useProductionScheduleMutations'
 import { useProductionSchedules } from '../../hooks/useProductionSchedules'
+import { getHttpErrorMessage } from '../../lib/httpClient'
 import type { CreateProductInput, CreateProductionScheduleInput, Product, ProductionSchedule } from '../../types/product'
 
 const getLocalDateString = () => {
@@ -30,31 +30,6 @@ const formatDate = (value: string) => {
   if (!parts) return 'Data inválida'
   const { day, month, year } = parts
   return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`
-}
-
-const getApiErrorMessage = (err: unknown, fallback: string) => {
-  if (isAxiosError(err)) {
-    const data = err.response?.data
-    if (typeof data === 'string') return data
-    if (data && typeof data === 'object') {
-      if ('message' in data && typeof (data as { message?: string }).message === 'string') {
-        return (data as { message: string }).message
-      }
-      if ('errors' in data && data.errors && typeof data.errors === 'object') {
-        const errorsObj = data.errors as Record<string, string | string[]>
-        const firstKey = Object.keys(errorsObj)[0]
-        if (firstKey) {
-          const value = errorsObj[firstKey]
-          if (Array.isArray(value)) return value[0]
-          if (typeof value === 'string') return value
-        }
-      }
-      if ('title' in data && typeof (data as { title?: string }).title === 'string') {
-        return (data as { title: string }).title
-      }
-    }
-  }
-  return fallback
 }
 
 export const Production = () => {
@@ -154,7 +129,7 @@ export const Production = () => {
       showMessage('Produto criado com sucesso!')
       setProductModalOpen(false)
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Erro ao criar produto.')
+      const message = getHttpErrorMessage(err, 'Erro ao criar produto.')
       setFormError(message)
       showMessage(message, 'error')
     }
@@ -168,7 +143,7 @@ export const Production = () => {
       showMessage('Produto atualizado com sucesso!')
       setEditingProduct(null)
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Erro ao atualizar produto.')
+      const message = getHttpErrorMessage(err, 'Erro ao atualizar produto.')
       setFormError(message)
       showMessage(message, 'error')
     }
@@ -180,7 +155,7 @@ export const Production = () => {
       await createSchedule.mutateAsync(values)
       showMessage('Produção planejada!')
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Erro ao planejar produção.')
+      const message = getHttpErrorMessage(err, 'Erro ao planejar produção.')
       setFormError(message)
       showMessage(message, 'error')
     }

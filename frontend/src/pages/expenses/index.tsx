@@ -1,10 +1,10 @@
-import { isAxiosError } from 'axios'
 import { useMemo, useState } from 'react'
 
 import { ExpenseForm, type ExpenseFormValues } from '../../components/expenses/ExpenseForm'
 import { IconActionButton } from '../../components/ui/IconActionButton'
 import { useExpenses } from '../../hooks/useExpenses'
 import { useExpenseMutations } from '../../hooks/useExpenseMutations'
+import { getHttpErrorMessage } from '../../lib/httpClient'
 import type { Expense, ExpenseCategory } from '../../types/expense'
 
 const categoryOptions: { label: string; value: ExpenseCategory }[] = [
@@ -40,31 +40,6 @@ const normalizeDate = (value?: string) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return undefined
   return date.toISOString()
-}
-
-const getApiErrorMessage = (err: unknown, fallback: string) => {
-  if (isAxiosError(err)) {
-    const data = err.response?.data
-    if (typeof data === 'string') return data
-    if (data && typeof data === 'object') {
-      if ('message' in data && typeof (data as { message?: string }).message === 'string') {
-        return (data as { message: string }).message
-      }
-      if ('errors' in data && data.errors && typeof data.errors === 'object') {
-        const errorsObj = data.errors as Record<string, string | string[]>
-        const firstKey = Object.keys(errorsObj)[0]
-        if (firstKey) {
-          const value = errorsObj[firstKey]
-          if (Array.isArray(value)) return value[0]
-          if (typeof value === 'string') return value
-        }
-      }
-      if ('title' in data && typeof (data as { title?: string }).title === 'string') {
-        return (data as { title: string }).title
-      }
-    }
-  }
-  return fallback
 }
 
 export const Expenses = () => {
@@ -119,7 +94,7 @@ export const Expenses = () => {
       showMessage('Despesa criada com sucesso!')
       setIsCreateOpen(false)
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Erro ao criar despesa.')
+      const message = getHttpErrorMessage(err, 'Erro ao criar despesa.')
       setFormError(message)
       showMessage(message, 'error')
     }
@@ -142,7 +117,7 @@ export const Expenses = () => {
       showMessage('Despesa atualizada com sucesso!')
       setEditingExpense(null)
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Erro ao atualizar despesa.')
+      const message = getHttpErrorMessage(err, 'Erro ao atualizar despesa.')
       setFormError(message)
       showMessage(message, 'error')
     }

@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
 import { ServiceOrderForm, type ServiceOrderFormValues } from '../../components/serviceOrders/ServiceOrderForm'
@@ -7,6 +6,7 @@ import { useCustomers } from '../../hooks/useCustomers'
 import { useOrders } from '../../hooks/useOrders'
 import { useServiceOrderMutations } from '../../hooks/useServiceOrderMutations'
 import { useServiceOrders } from '../../hooks/useServiceOrders'
+import { getHttpErrorMessage } from '../../lib/httpClient'
 import type { Customer } from '../../types/customer'
 import type { Order } from '../../types/order'
 import type { ServiceOrder } from '../../types/serviceOrder'
@@ -20,31 +20,6 @@ type PrintableItem = {
 
 type PrintableLineItem = PrintableItem & {
   kind: 'Produto' | 'Serviço'
-}
-
-const getApiErrorMessage = (err: unknown, fallback: string) => {
-  if (isAxiosError(err)) {
-    const data = err.response?.data
-    if (typeof data === 'string') return data
-    if (data && typeof data === 'object') {
-      if ('message' in data && typeof (data as { message?: string }).message === 'string') {
-        return (data as { message: string }).message
-      }
-      if ('errors' in data && data.errors && typeof data.errors === 'object') {
-        const errorsObj = data.errors as Record<string, string | string[]>
-        const firstKey = Object.keys(errorsObj)[0]
-        if (firstKey) {
-          const value = errorsObj[firstKey]
-          if (Array.isArray(value)) return value[0]
-          if (typeof value === 'string') return value
-        }
-      }
-      if ('title' in data && typeof (data as { title?: string }).title === 'string') {
-        return (data as { title: string }).title
-      }
-    }
-  }
-  return fallback
 }
 
 const formatCurrency = (value: number) =>
@@ -260,7 +235,7 @@ export const ServiceOrders = () => {
 
       closeFormModal()
     } catch (err) {
-      const message = getApiErrorMessage(
+      const message = getHttpErrorMessage(
         err,
         editingOrder ? 'Erro ao atualizar ordem de serviço.' : 'Erro ao criar ordem de serviço.',
       )
@@ -286,7 +261,7 @@ export const ServiceOrders = () => {
         closeFormModal()
       }
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Erro ao excluir ordem de serviço.')
+      const message = getHttpErrorMessage(err, 'Erro ao excluir ordem de serviço.')
       showMessage(message, 'error')
     }
   }

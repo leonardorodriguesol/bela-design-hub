@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useMemo, useState } from 'react'
 
 import { OrderForm, type OrderFormValues } from '../../components/orders/OrderForm'
@@ -7,6 +6,7 @@ import { useOrders } from '../../hooks/useOrders'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useOrderMutations } from '../../hooks/useOrderMutations'
 import { useProducts } from '../../hooks/useProducts'
+import { getHttpErrorMessage } from '../../lib/httpClient'
 import type { Order, OrderStatus, UpdateOrderInput } from '../../types/order'
 
 type OrderFilterStatus = OrderStatus | 'Overdue'
@@ -93,31 +93,6 @@ export const Orders = () => {
     return date.toISOString().slice(0, 10)
   }
 
-  const getApiErrorMessage = (err: unknown, fallback: string) => {
-    if (isAxiosError(err)) {
-      const data = err.response?.data
-      if (typeof data === 'string') return data
-      if (data && typeof data === 'object') {
-        if ('message' in data && typeof (data as { message?: string }).message === 'string') {
-          return (data as { message: string }).message
-        }
-        if ('errors' in data && data.errors && typeof data.errors === 'object') {
-          const errorsObj = data.errors as Record<string, string | string[]>
-          const firstKey = Object.keys(errorsObj)[0]
-          if (firstKey) {
-            const value = errorsObj[firstKey]
-            if (Array.isArray(value)) return value[0]
-            if (typeof value === 'string') return value
-          }
-        }
-        if ('title' in data && typeof (data as { title?: string }).title === 'string') {
-          return (data as { title: string }).title
-        }
-      }
-    }
-    return fallback
-  }
-
   const isOrderOverdue = (order: Order) => {
     if (!order.deliveryDate || order.status === 'Delivered') return false
     const deliveryDate = new Date(order.deliveryDate)
@@ -175,7 +150,7 @@ export const Orders = () => {
       showMessage('Pedido criado com sucesso!')
       setIsCreateOpen(false)
     } catch (error) {
-      const message = getApiErrorMessage(error, 'Erro ao criar pedido.')
+      const message = getHttpErrorMessage(error, 'Erro ao criar pedido.')
       setCreateError(message)
       showMessage(message, 'error')
     }
@@ -201,7 +176,7 @@ export const Orders = () => {
       showMessage('Pedido atualizado com sucesso!')
       setEditingOrder(null)
     } catch (error) {
-      const message = getApiErrorMessage(error, 'Erro ao atualizar pedido.')
+      const message = getHttpErrorMessage(error, 'Erro ao atualizar pedido.')
       setUpdateError(message)
       showMessage(message, 'error')
     }
